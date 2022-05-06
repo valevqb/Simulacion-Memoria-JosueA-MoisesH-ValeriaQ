@@ -13,7 +13,8 @@
 // https://www.geeksforgeeks.org/use-posix-semaphores-c/
 // https://stackoverflow.com/questions/40181096/c-linux-pthreads-sending-data-from-one-thread-to-another-using-shared-memory-gi
 
-#define SIZE 10
+#define SIZE 5
+key_t key = 12345678;
 sem_t mutex;
 
 void *threadWrite(void *arg)
@@ -21,7 +22,6 @@ void *threadWrite(void *arg)
     int shmid;
     int *array;
     int i = 0;
-    key_t key = 12345678;
 
     shmid = shmget(key, SIZE * sizeof(int), IPC_CREAT | 0600);
 
@@ -34,7 +34,7 @@ void *threadWrite(void *arg)
     sleep(1);
     for (i; i < SIZE; i++)
     {
-        sleep(2);
+        sleep(1);
         array[i] = 1;
         printf("1: Wrote %d at %d\n", array[i], i);
     }
@@ -56,7 +56,7 @@ void *threadWrite(void *arg)
 
     for (i = 0; i < SIZE; i++)
     {
-        sleep(2);
+        sleep(1);
         printf("1: Read %d at %d\n", array[i], i);
     }
     // critical section
@@ -73,7 +73,6 @@ void *threadRead(void *arg)
     int shmid;
     int *array;
     int i = 0;
-    key_t key = 12345678;
 
     shmid = shmget(key, SIZE * sizeof(int), IPC_CREAT | 0600);
 
@@ -86,8 +85,8 @@ void *threadRead(void *arg)
     // critical section
     for (i; i < SIZE; i++)
     {
-        sleep(2);
-        // Read
+        sleep(1);
+        //  Read
         printf("2: Read %d at %d\n", array[i], i);
     }
     printf("\n2: is responding...\n");
@@ -95,7 +94,7 @@ void *threadRead(void *arg)
     for (i = 0; i < SIZE; i++)
     {
         // Respond
-        sleep(2);
+        sleep(1);
         array[i] += 5;
         printf("2: Wrote %d at %d\n", array[i], i);
     }
@@ -109,13 +108,8 @@ void *threadRead(void *arg)
 
 int main()
 {
-    int i;
-    int shm_id;
-    pid_t pid;
-    int *addr;
-    int data;
-    pid_t current_pid;
-    key_t shm_key;
+
+    int shmid;
 
     sem_init(&mutex, 0, 1);
     pthread_t t1, t2;
@@ -124,5 +118,8 @@ int main()
     pthread_join(t1, NULL);
     pthread_join(t2, NULL);
     sem_destroy(&mutex);
+
+    shmid = shmget(key, SIZE * sizeof(int), IPC_CREAT | 0600);
+    shmctl(shmid, IPC_RMID, NULL);
     return 0;
 }
