@@ -9,6 +9,7 @@
 #include <sys/wait.h>
 #include <pthread.h>
 
+
 // SOURCES:
 // https://www.geeksforgeeks.org/use-posix-semaphores-c/
 // https://stackoverflow.com/questions/40181096/c-linux-pthreads-sending-data-from-one-thread-to-another-using-shared-memory-gi
@@ -16,6 +17,9 @@
 #define SIZE 5
 key_t key = 12345678;
 sem_t mutex;
+
+
+int counterGlobal= 0;
 
 void *threadWrite(void *arg)
 {
@@ -106,20 +110,81 @@ void *threadRead(void *arg)
     sem_post(&mutex);
 }
 
+
+void Process()
+{
+    int counterLocal = counterGlobal;
+    counterGlobal++;
+    int shmid;
+    int full = 0;//Flag to find space
+
+	sem_wait(&mutex);
+    shmid = shmget(key, SIZE *sizeof(int), IPC_CREAT | 0666);
+    int * array = (int*) shmat(shmid, 0, 0);
+    for (int pos = 0; pos < SIZE; pos++)
+    {
+        if( array[pos] == -1)
+        {
+            array[pos] = counterLocal;
+            full = 1;
+            break;
+        }
+    }
+    if(full)
+    {
+       printf("Encontro espacio");//Se escribe en bitacora
+    }
+    else
+    {
+        printf("No encontro espacio");//Se escribe en bitacora
+        shmdt((void*)array);
+        sem_post(&mutex);
+        return;    
+    }
+    shmdt((void*)array);
+    sem_post(&mutex);
+
+    sleep(5);
+    
+    sem_wait(&mutex);
+    shmid = shmget(key, SIZE *sizeof(int), IPC_CREAT | 0666);
+    array = (int*) shmat(shmid, 0, 0);
+    for (int pos = 0; pos < SIZE; pos++)
+    {
+        if( array[pos] == counterLocal)
+        {
+            array[pos] = -1;
+            full = 1;
+            break;
+        }
+    }
+    printf("Libero espacio"); //En bitacora
+    shmdt((void*)array);
+    sem_post(&mutex);
+}
+
 int main()
 {
 
     int shmid;
 
     sem_init(&mutex, 0, 1);
+    shmid = shmget(key, SIZE * sizeof(int), IPC_CREAT | 0666);
+    int * array = (int*) shmat(shmid, 0, 0);
+    for (int pos = 0; pos < SIZE; pos++)
+    {
+        array[pos] = -1;
+    }
+    
     pthread_t t1, t2;
-    pthread_create(&t1, NULL, threadWrite, NULL);
-    pthread_create(&t2, NULL, threadRead, NULL);
+    pthread_create(&t1, NULL, Process, NULL);
+    pthread_create(&t2, NULL, Process, NULL);
     pthread_join(t1, NULL);
     pthread_join(t2, NULL);
     sem_destroy(&mutex);
 
-    shmid = shmget(key, SIZE * sizeof(int), IPC_CREAT | 0600);
     shmctl(shmid, IPC_RMID, NULL);
-    return 0;
+
+	return 0;
+
 }
