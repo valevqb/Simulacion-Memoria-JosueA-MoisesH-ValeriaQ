@@ -84,12 +84,13 @@ int main()
 {
     // INIT FUNCTION
     int shmid;
-    struct PCB *process = malloc(sizeof(struct PCB));
-    shmid = shmget(key, sizeof(process), IPC_CREAT | 0666); // Create shared memory space
+    struct Node *tmp = (struct Node *)malloc(sizeof(struct Node));
+    // struct PCB *process = malloc(sizeof(struct PCB));
+    shmid = shmget(key, sizeof(tmp), IPC_CREAT | 0666); // Create shared memory space
 
-    process = (struct PCB *)shmat(shmid, 0, 0); // Map shared memory space to array
-    printf("%d,%d\n", process->pId, process->state);
-    shmdt((void *)process); // Detach memory space
+    tmp = (struct Node *)shmat(shmid, 0, 0); // Map shared memory space to array
+    printf("%d,%d\n", tmp->process.pId, tmp->process.state);
+    shmdt((void *)tmp); // Detach memory space
     // Liberate shared memory space, this would be done by the process finalizer
     shmctl(shmid, IPC_RMID, NULL);
     return 0;
