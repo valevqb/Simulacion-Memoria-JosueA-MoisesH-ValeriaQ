@@ -10,12 +10,13 @@
 #include <pthread.h>
 
 key_t key = 12345678;
+key_t structKey = 11223344;
 sem_t mutex;
 
 int counterGlobal = 0; // Counter for PID of processes, would be managed by process structure
 int segSize;           // This would be generated randomly by the init function
 int SIZE = 9;              // Size of shared memory, given by user input in init function
-
+FILE * openFile;	//Create a file
 
 // Process PCN
 struct PCB
@@ -256,6 +257,39 @@ void pageProcess(void *arg)
 
 int main()
 {
+	// INIT FUNCTION
+    int shmid;
+    struct PCB process ;
+
+    struct Node *tmp = malloc(sizeof(struct Node));
+    shmid = shmget(structKey, sizeof(tmp), IPC_CREAT | 0666); // Create shared memory space
+
+    tmp = (struct Node *)shmat(shmid, 0, 0); // Map shared memory space to array
+    process.pId = 0;
+    process.state = 0;
+    tmp->process = process;
+
+    shmdt((void *)tmp); // Detach memory space
+    // Liberate shared memory space, this would be done by the process finalizer
+    // shmctl(shmid, IPC_RMID, NULL);
+	
+	//Select variables
+	int type;
+	
+	printf("Select type of memory process\n");
+	printf("1. Page\n");
+	printf("2. Segment\n");
+    scanf("%d", &type); // Ask for shared memory size from user
+    printf("\n\n");   
+	
+	//Write file
+	openFile = fopen("bitacora.txt","w");
+	
+	if(!openFile){
+		printf("Could not create file.\n");
+		exit(EXIT_FAILURE);
+	}
+	
     // INIT FUNCTION
     sem_init(&mutex, 0, 1);                                    // initilalize semaphore
 
@@ -266,9 +300,15 @@ int main()
     pthread_t t1;
     while (counterGlobal != 10)
     {
-        pthread_t t2;
-        pthread_create(&t2, NULL, segmentProcess, NULL);
-        sleep(2); // Fixed sleep amount, defined by random in process creator
+		if(type == 2){
+			pthread_t t2;
+			pthread_create(&t2, NULL, segmentProcess, NULL);
+			sleep(2); // Fixed sleep amount, defined by random in process creator
+		} else{
+			pthread_t t2;
+			pthread_create(&t2, NULL, pageProcess, NULL);
+			sleep(2); // Fixed sleep amount, defined by random in process creator
+		}
     }
 
     pthread_create(&t1, NULL, segmentProcess, NULL);
@@ -277,6 +317,8 @@ int main()
 
     // Liberate semaphore memory, this would be done by the process finalizer
     sem_destroy(&mutex);
+	
+	fclose(openFile);
 
     return 0;
 }
