@@ -8,6 +8,7 @@
 #include <errno.h>
 #include <sys/wait.h>
 #include <pthread.h>
+#include <time.h>
 
 key_t key = 12345678;
 key_t structKey = 11223344;
@@ -83,18 +84,24 @@ struct Node *searchProcessById(struct Queue *q, int pId)
 }
 
 void writeBit(int pId, int state, int *array){
+	time_t t = time(NULL);
+ 	struct tm tm = *localtime(&t);
+	fprintf(openFile,
+			"Actual Time: %d-%02d-%02d %02d:%02d:%02d\n",
+			tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
+	
 	if (state == 1){
 		printf("-------Busca espacio %d-------\n", pId);  	        // PRINT FOR TESTING PURPOSES
-		fprintf(openFile, "Search in memory with id: %d\n\n", pId);	//Write in file
+		fprintf(openFile, "Search in memory with id: %d\n", pId);	//Write in file
 	} else if (state == 2){
 		printf("------Encontro espacio %d-----\n", pId);	// PRINT FOR TESTING PURPOSES
-		fprintf(openFile, "Space found: %d\n\n", pId);	    //Write in file
+		fprintf(openFile, "Space found for id: %d\n", pId);	    //Write in file
 	} else if (state == 3){
 		printf("----No encontro espacio muere proceso %d----\n", pId);     // PRINT FOR TESTING PURPOSES
-		fprintf(openFile, "Process dies id: %d\n\n", pId);	//Write in file
+		fprintf(openFile, "Process dies id: %d\n", pId);	//Write in file
 	} else if (state == 4){
 		printf("-------Libero espacio %d------\n", pId);         	// PRINT FOR TESTING PURPOSES
-		fprintf(openFile, "Process finish with id: %d\n\n", pId);		//Write in file
+		fprintf(openFile, "Process finish with id: %d\n", pId);		//Write in file
 	}
 	
 	fprintf(openFile, "Actual array: \n"); // PRINT FOR TESTING PURPOSES
