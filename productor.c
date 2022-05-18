@@ -82,27 +82,51 @@ struct Node *searchProcessById(struct Queue *q, int pId)
 	return NULL;
 }
 
+void writeBit(int pId, int state, int *array){
+	if (state == 1){
+		printf("-------Busca espacio %d-------\n", pId);  	        // PRINT FOR TESTING PURPOSES
+		fprintf(openFile, "Search in memory with id: %d\n\n", pId);	//Write in file
+	} else if (state == 2){
+		printf("------Encontro espacio %d-----\n", pId);	// PRINT FOR TESTING PURPOSES
+		fprintf(openFile, "Space found: %d\n\n", pId);	    //Write in file
+	} else if (state == 3){
+		printf("----No encontro espacio muere proceso %d----\n", pId);     // PRINT FOR TESTING PURPOSES
+		fprintf(openFile, "Process dies id: %d\n\n", pId);	//Write in file
+	} else if (state == 4){
+		printf("-------Libero espacio %d------\n", pId);         	// PRINT FOR TESTING PURPOSES
+		fprintf(openFile, "Process finish with id: %d\n\n", pId);		//Write in file
+	}
+	
+	fprintf(openFile, "Actual array: \n"); // PRINT FOR TESTING PURPOSES
+	
+    for (int pos = 0; pos < SIZE; pos++)         // Print memory space status, FOR TESTING PURPOSES
+    {
+        fprintf(openFile, "%d ", array[pos]);
+    }
+    fprintf(openFile, "\n\n"); // PRINT FOR TESTING PURPOSES
+}
+
 void segmentProcess(struct Node *arg)
 {
 	//printf("%d,%d\n", arg->process.pId, arg->process.state);
 
     int counterLocal = counterGlobal; // Save current PID counter locally
     int shmid;
-    int full = 0;     // Flag for memory availability ; 0 = space was not found, 1 = space was found
-    int segCount = 0; // Counter to check if there is enough continuous space
+    int full = 0;     				  // Flag for memory availability ; 0 = space was not found, 1 = space was found
+    int segCount = 0;                 // Counter to check if there is enough continuous space
 
     /*
      * Here is where the sync algorithm would be implemented
      * Before waiting at the semaphore, each process would check if it's their turn
      */
 
-    sem_wait(&mutex);                                          // Send wait signal to semaphore when ready
-    printf("-------Busca espacio %d-------\n", counterLocal);  // PRINT FOR TESTING PURPOSES
-    arg->process.state = 1;		//Search memory
-	fprintf(openFile, "Search in memory with id: %d\n", arg->process.pId);	//Write in file
+    sem_wait(&mutex);                                         				// Send wait signal to semaphore when ready
+    arg->process.state = 1;												    //Search memory
 	
 	shmid = shmget(key, SIZE * sizeof(int), IPC_CREAT | 0666); // Get shared memory
     int *array = (int *)shmat(shmid, 0, 0);                    // Map memory to array
+	
+	writeBit(arg->process.pId, 1, array);
 	
     // Loop to check for available memory
     for (int pos = 0; pos < SIZE; pos++) // Here, SIZE would be replaced by the amount of segments
@@ -126,30 +150,20 @@ void segmentProcess(struct Node *arg)
             segCount = 0; // Reset segment count
         }
     }
-	
-    printf("Arreglo actual %d\n", counterLocal); // PRINT FOR TESTING PURPOSES
-	
-    for (int pos = 0; pos < SIZE; pos++)         // Print memory space status, FOR TESTING PURPOSES
-    {
-        printf("%d ", array[pos]);
-    }
-    printf("\n"); // PRINT FOR TESTING PURPOSES
 
     if (full) // If there was memory available
     {
         // NOT IMPLEMENTED
         // Write to log relevant information
-        printf("------Encontro espacio %d-----\n", counterLocal); // PRINT FOR TESTING PURPOSES
 		arg->process.state = 2; //Process in memory
-		fprintf(openFile, "Space found: %d\n", arg->process.pId);	//Write in file
+		writeBit(arg->process.pId, 2, array);
     }
     else // If there was no memory available
     {
         // NOT IMPLEMENTED
         // Write to log relevant information
-        printf("----No encontro espacio %d----\n", counterLocal); // PRINT FOR TESTING PURPOSES
 		arg->process.state = 3;                                   //Process dies
-		fprintf(openFile, "Process dies id: %d\n", arg->process.pId);	//Write in file
+		writeBit(arg->process.pId, 3, array);
         shmdt((void *)array);                                     // Detach memory segment
         sem_post(&mutex);                                         // Set semaphore to ready state
         return;                                                   // Process dies
@@ -163,7 +177,7 @@ void segmentProcess(struct Node *arg)
     sem_wait(&mutex);                                          // Wait for ready signal
     shmid = shmget(key, SIZE * sizeof(int), IPC_CREAT | 0666); // Get id of memory space
     array = (int *)shmat(shmid, 0, 0);                         // Map shared memory to an array
-    printf("-----Liberando espacio %d-----\n", counterLocal);  // PRINT FOR TESTING PURPOSES
+    //printf("-----Liberando espacio %d-----\n", counterLocal);  // PRINT FOR TESTING PURPOSES
     for (int pos = 0; pos < SIZE; pos++)                       // Set memory spaces filled by process to -1
     {
         if (array[pos] == counterLocal)
@@ -171,18 +185,17 @@ void segmentProcess(struct Node *arg)
             array[pos] = -1;
         }
     }
-    printf("Arreglo actual %d\n", counterLocal); // PRINT FOR TESTING PURPOSES
+    /*printf("Arreglo actual %d\n", counterLocal); // PRINT FOR TESTING PURPOSES
     for (int pos = 0; pos < SIZE; pos++)         // PRINT FOR TESTING PURPOSES
     {
         printf("%d ", array[pos]);
     }
-    printf("\n"); // PRINT FOR TESTING PURPOSES
+    printf("\n"); // PRINT FOR TESTING PURPOSES*/
 
     // NOT IMPLEMENTED YET
     // Write to log relevant information
-    printf("-------Libero espacio %d------\n", counterLocal); // PRINT FOR TESTING PURPOSES
-	arg->process.state = 4;                                   //Process finish
-	fprintf(openFile, "Process finish with id: %d\n", arg->process.pId);	//Write in file
+    arg->process.state = 4;                                   //Process finish
+	writeBit(arg->process.pId, 4, array);
     shmdt((void *)array);                                     // Detach memory segment
     sem_post(&mutex);                                         // Set semaphore to ready state
 }
@@ -227,7 +240,7 @@ void pageProcess(void *arg)
     }
     else // If space was not found in memory
     {
-        // NOT IMPLEMENTED YET
+        // NOT IMPLEMENTED YETpId
         // Write to log relevant information
         printf("----No encontro espacio %d----\n", counterLocal); // PRINT FOR TESTING PURPOSES
         shmdt((void *)array);                                     // Detach memory space
@@ -272,6 +285,8 @@ int main()
 	// INIT FUNCTION
     int shmid;
     struct PCB process ;
+	//Select variables
+	int type;
 
     struct Node *tmp = malloc(sizeof(struct Node));
     shmid = shmget(structKey, sizeof(tmp), IPC_CREAT | 0666); // Create shared memory space
@@ -280,9 +295,6 @@ int main()
     process.pId = 0;
     process.state = 0;
     tmp->process = process;
-	
-	//Select variables
-	int type;
 	
 	printf("Select type of memory process\n");
 	printf("1. Page\n");
@@ -299,7 +311,7 @@ int main()
 	}
 	
     // INIT FUNCTION
-    sem_init(&mutex, 0, 1);                                    // initilalize semaphore
+    sem_init(&mutex, 0, 1);	// initilalize semaphore
 
     // TESTING AREA
     // This part would be done by the process creator
@@ -327,6 +339,7 @@ int main()
 		tmp->next = tmp2;
 		tmp = tmp2;
 		
+		///////////Para efectos de pruebas///////////
 		if(counterGlobal == 11){
 			fclose(openFile);
 		}
@@ -343,3 +356,4 @@ int main()
 
     return 0;
 }
+
