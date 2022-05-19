@@ -15,7 +15,8 @@ key_t structKey = 11223344;
 sem_t mutex;
 
 int counterGlobal = 0; // Counter for PID of processes, would be managed by process structure
-int segSize;           // This would be generated randomly by the init function
+int sizeProcessPage;           // This would be generated randomly by the init function
+int sizeProcessSeg; 
 int SIZE = 9;              // Size of shared memory, given by user input in init function
 
 // Process PCN
@@ -31,6 +32,8 @@ struct PCB
     =>3-Death process
     =>4-Finish process
     */
+	int sizeP[];
+	int spaces;	//Segments or pages space
 };
 
 // List nodes
@@ -112,9 +115,9 @@ void writeBit(int pId, int state, int *array, FILE *openFile){
     fprintf(openFile, "\n\n"); // PRINT FOR TESTING PURPOSES
 }
 
-void segmentProcess(struct Node *arg)
+void pageProcess(struct Node *arg)
 {
-    int counterLocal = counterGlobal; // Save current PID counter locally
+    int idProcess = arg->process.pId; // Save current PID counter locally
     int shmid;
     int full = 0;     				  // Flag for memory availability ; 0 = space was not found, 1 = space was found
     int segCount = 0;                 // Counter to check if there is enough continuous space
@@ -123,7 +126,6 @@ void segmentProcess(struct Node *arg)
      * Here is where the sync algorithm would be implemented
      * Before waiting at the semaphore, each process would check if it's their turn
      */
-
     sem_wait(&mutex);                                         				// Send wait signal to semaphore when ready
 	FILE *file = fopen("bitacora.txt","a");                                 // Open file
     arg->process.state = 1;												    //Search memory
@@ -131,7 +133,7 @@ void segmentProcess(struct Node *arg)
 	shmid = shmget(key, SIZE * sizeof(int), IPC_CREAT | 0666); // Get shared memory
     int *array = (int *)shmat(shmid, 0, 0);                    // Map memory to array
 	
-	writeBit(arg->process.pId, 1, array, file);
+	writeBit(idProcess, 1, array, file);
 	
     // Loop to check for available memory
     for (int pos = 0; pos < SIZE; pos++) // Here, SIZE would be replaced by the amount of segments
@@ -139,12 +141,12 @@ void segmentProcess(struct Node *arg)
         if (array[pos] == -1) // If the memory space is available
         {
             segCount++;              // Increase segment count
-            if (segCount == segSize) // If the segment count is equal to the required space
+            if (segCount == sizeProcessPage) // If the segment count is equal to the required space
             {
                 while (segCount != 0) // Fill the available space
                 {
                     segCount--;
-                    array[pos - segCount] = counterLocal;
+                    array[pos - segCount] = idProcess;
                 }
                 full = 1; // Memory wasn't full
                 break;
@@ -161,14 +163,14 @@ void segmentProcess(struct Node *arg)
         // NOT IMPLEMENTED
         // Write to log relevant information
 		arg->process.state = 2; //Process in memory
-		writeBit(arg->process.pId, 2, array, file);
+		writeBit(idProcess, 2, array, file);
     }
     else // If there was no memory available
     {
         // NOT IMPLEMENTED
         // Write to log relevant information
 		arg->process.state = 3;                                   //Process dies
-		writeBit(arg->process.pId, 3, array, file);
+		writeBit(idProcess, 3, array, file);
         shmdt((void *)array);                                     // Detach memory segment
         sem_post(&mutex);                                         // Set semaphore to ready state
 		fclose(file);
@@ -179,7 +181,9 @@ void segmentProcess(struct Node *arg)
 	fclose(file);
     sem_post(&mutex);     // Set semaphore to ready state
 
-    sleep(11); // Sleep amount would be defined by a random from the process creator
+	srand(time(NULL));
+	int pageSleep = rand () % (60-20+1) + 20;
+    sleep(pageSleep); // Sleep amount would be defined by a random from the process creator
 
     sem_wait(&mutex);                                          // Wait for ready signal
     shmid = shmget(key, SIZE * sizeof(int), IPC_CREAT | 0666); // Get id of memory space
@@ -187,20 +191,31 @@ void segmentProcess(struct Node *arg)
 	
     for (int pos = 0; pos < SIZE; pos++)                       // Set memory spaces filled by process to -1
     {
-        if (array[pos] == counterLocal)
+        if (array[pos] == idProcess)
         {
             array[pos] = -1;
         }
     }
 	file = fopen("bitacora.txt","a");
     arg->process.state = 4;                                   //Process finish
-	writeBit(arg->process.pId, 4, array, file);
+	writeBit(idProcess, 4, array, file);
     shmdt((void *)array);                                     // Detach memory segment
 	fclose(file);
     sem_post(&mutex);                                         // Set semaphore to ready state
 }
 
-void pageProcess(void *arg)
+////////////////////////////////////////////////
+///////////////////////////////////////////////
+//////////////////////////////////////////////
+//////////////////////////////////////////////
+//////////////////////////////////////////////
+////////HAY QUE CAMBIARLO/////////////////////
+////////////////////////////////////////////////
+///////////////////////////////////////////////
+//////////////////////////////////////////////
+//////////////////////////////////////////////
+//////////////////////////////////////////////
+void segmentProcess(void *arg)
 {
     int counterLocal = counterGlobal; // Save current PID counter locally
     int shmid;
@@ -308,22 +323,31 @@ int main()
     // TESTING AREA
     // This part would be done by the process creator
     // segmentProcess or pageProcess would depend on user input
-    segSize = 2; // Defined by random in process creator
     pthread_t t1;
+	srand(time(NULL));
+	int pthreadTime;
+	int segments;
     while (1)
     {	
+		pthreadTime = rand () % (60-30+1) + 30;
+		
 		if(type == 2){
+			segments = rand () % (5-1+1) + 1;
+			int sizeProcess[segments];
+			for(int i = 0; segments > i; i++){
+				sizeProcess[i] = rand () % (3-1+1) + 1;
+			}
 			pthread_t t2;
 			pthread_create(&t2, NULL, segmentProcess, tmp);
-			sleep(2); // Fixed sleep amount, defined by random in process creator
 		} else{
+			sizeProcessPage = rand () % (10-1+1) + 1;
 			pthread_t t2;
 			pthread_create(&t2, NULL, pageProcess, tmp);
-			sleep(2); // Fixed sleep amount, defined by random in process creator
 		}
 		
-		counterGlobal++;
+		sleep(pthreadTime); // Fixed sleep amount, defined by random in process creator
 		
+		counterGlobal++;
 		struct Node *tmp2 = malloc(sizeof(struct Node));
 		process.pId = counterGlobal;
 		process.state = 0;
