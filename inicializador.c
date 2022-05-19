@@ -10,16 +10,26 @@
 #include <pthread.h>
 
 key_t key = 12345678;
-sem_t mutex;
+key_t keyDoc = 987;
 
-int counterGlobal = 0; // Counter for PID of processes, would be managed by process structure
-int segSize;           // This would be generated randomly by the init function
 int SIZE;              // Size of shared memory, given by user input in init function
 
 int main()
 {
     // INIT FUNCTION
     int shmid;
+	int shmidDoc;
+	
+	//Write file
+	FILE *files = fopen("bitacora.txt","w");
+	
+	if(!files){
+		printf("Could not create file.\n");
+		exit(EXIT_FAILURE);
+	}
+	//End File memory
+	
+	//Process memory
     printf("Enter shared memory size: ");
     scanf("%d", &SIZE); // Ask for shared memory size from user
     printf("\n\n");                                 // initilalize semaphore
@@ -29,6 +39,7 @@ int main()
     {
         array[pos] = -1;
     }
+	
     // END OF INIT FUNCTION
 
     return 0;
