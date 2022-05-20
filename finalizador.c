@@ -10,10 +10,10 @@
 #include <pthread.h>
 
 key_t key = 12345678;
-key_t structKey = 11223344;
+key_t keySize = 987;
 sem_t mutex;
 
-int SIZE = 10;              // Size of shared memory, given by user input in init function
+int SIZE;              // Size of shared memory, given by user input in init function
 // Process PCN
 struct PCB
 {
@@ -40,14 +40,23 @@ int main()
 {
     //For memory
     int shmid;
+    int shmsize;
+	int* mapSize;
 	
-	//For struct
-    struct Node *tmp = (struct Node *)malloc(sizeof(struct Node));
     // struct PCB *process = malloc(sizeof(struct PCB));
-    shmid = shmget(structKey, sizeof(tmp), IPC_CREAT | 0666); // Create shared memory space
+    shmsize = shmget(keySize, sizeof(int), IPC_CREAT | 0666); // Get shared memory size
+	mapSize = (int*)shmat(shmsize, 0, 0);
+	SIZE = mapSize[0];
+
+
+    shmid = shmget(key, SIZE * sizeof(int), IPC_CREAT | 0666); // Create shared memory space
+
+	shmdt((void *)mapSize); // Detach memory space
+
 
     // Liberate shared memory space, this would be done by the process finalizer
     shmctl(shmid, IPC_RMID, NULL);
+	shmctl(shmsize, IPC_RMID, NULL); // Detach memory space
 
     return 0;
 }

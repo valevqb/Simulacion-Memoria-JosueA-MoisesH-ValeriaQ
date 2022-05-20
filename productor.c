@@ -11,13 +11,13 @@
 #include <time.h>
 
 key_t key = 12345678;
-key_t structKey = 11223344;
+key_t keySize = 987;
 sem_t mutex;
 
 int counterGlobal = 0; // Counter for PID of processes, would be managed by process structure
 //int sizeProcessPage;           // This would be generated randomly by the init function
 //int sizeProcessSeg; 
-int SIZE = 20;              // Size of shared memory, given by user input in init function
+int SIZE ;              // Size of shared memory, given by user input in init function
 
 // Process PCN
 struct PCB
@@ -83,6 +83,25 @@ struct Node *searchProcessById(struct Queue *q, int pId)
 		node = node->next;
 	}
 	return NULL;
+}
+
+void printNode(struct Node *n)
+{
+    printf("\nProcess ID:%d\nSpaces:%d\nState:%d\n", n->process.pId, n->process.spaces, n->process.state);
+    return;
+}
+
+// Prints lists
+void printQueue(struct Queue *q)
+{
+    struct Node *tmp = q->first;
+    while (tmp != NULL)
+    {
+        printNode(tmp);
+        tmp = tmp->next;
+    }
+
+    return;
 }
 
 void writeBit(int pId, int state, int *array, FILE *openFile){
@@ -307,19 +326,26 @@ void segmentProcess(struct Node *arg)
 
 int main()
 {
+
 	// INIT FUNCTION
     int shmid;
-    struct PCB process ;
+	int shmsize;
+	int* mapSize;
 	//Select variables
 	int type;
 
-    struct Node *tmp = malloc(sizeof(struct Node));
-    shmid = shmget(structKey, sizeof(tmp), IPC_CREAT | 0666); // Create shared memory space
+	shmsize = shmget(keySize, sizeof(int), IPC_CREAT | 0666); // Get shared memory size
 
-    tmp = (struct Node *)shmat(shmid, 0, 0); // Map shared memory space to array
-    process.pId = 0;
-    process.state = 0;
-    tmp->process = process;
+	mapSize = (int*)shmat(shmsize, 0, 0);
+	SIZE = mapSize[0];
+
+
+	shmdt((void *)mapSize); // Detach memory space
+	printf("Size: %d \n", SIZE);
+
+
+	struct Queue *cola = (struct Queue *)malloc(sizeof(struct Queue));
+	
 	
 	printf("Select type of memory process\n");
 	printf("1. Page\n");
@@ -339,36 +365,37 @@ int main()
 	int segments;
     while (1)
     {	
+		struct PCB process;
 		pthreadTime = rand () % (60-30+1) + 30;
-		
+		process.pId = counterGlobal;
+		process.state = 0;
+		insertProcess(cola, process);
+
 		if(type == 2){
 			pthread_t t2;
 			
 			segments = rand () % (5-1+1) + 1;
 			for(int i = 0; segments > i; i++){
-				 tmp->process.sizeP[i] = rand () % (3-1+1) + 1;
-				 printf("Espacios %d",tmp->process.sizeP[i]);
+				cola->last->process.sizeP[i] = rand () % (3-1+1) + 1;
+				printf("Espacios %d", cola->last->process.sizeP[i]);
 			}
 			printf("\n");
 			
-			tmp->process.spaces = segments;
-			pthread_create(&t2, NULL, segmentProcess, tmp);
+			cola->last->process.spaces = segments;
+			pthread_create(&t2, NULL, segmentProcess, cola->last);
 			
 		} else{
-			tmp->process.spaces = rand () % (10-1+1) + 1;
+			cola->last->process.spaces = rand () % (10-1+1) + 1;
 			pthread_t t2;
-			pthread_create(&t2, NULL, pageProcess, tmp);
+			pthread_create(&t2, NULL, pageProcess, cola->last);
 		}
+		printQueue(cola);
+		printf("\n\n");
 		
 		sleep(pthreadTime); // Fixed sleep amount, defined by random in process creator
 		
 		counterGlobal++;
-		struct Node *tmp2 = malloc(sizeof(struct Node));
-		process.pId = counterGlobal;
-		process.state = 0;
-		tmp2->process = process;
-		tmp->next = tmp2;
-		tmp = tmp2;
+		
     }
 
     pthread_create(&t1, NULL, segmentProcess, NULL);

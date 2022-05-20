@@ -10,7 +10,7 @@
 #include <pthread.h>
 
 key_t key = 12345678;
-key_t keyDoc = 987;
+key_t keySize = 987;
 
 int SIZE;              // Size of shared memory, given by user input in init function
 
@@ -19,7 +19,9 @@ int main()
     // INIT FUNCTION
     int shmid;
 	int shmidDoc;
-	
+    int shmsize;
+	int* mapSize;
+
 	//Write file
 	FILE *files = fopen("bitacora.txt","w");
 	
@@ -39,7 +41,11 @@ int main()
     {
         array[pos] = -1;
     }
-	
+
+    shmsize =  shmget(keySize, sizeof(int), IPC_CREAT | 0666); // Create shared memory space by size
+    mapSize = (int*)shmat(shmsize, 0, 0); // Map shared memory space to array
+    mapSize[0] = SIZE;
+
     // END OF INIT FUNCTION
 
     return 0;
