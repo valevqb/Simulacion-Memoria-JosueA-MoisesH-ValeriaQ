@@ -54,6 +54,7 @@ int main()
         printf("Select type of consultation\n");
         printf("1. Memory state\n");
         printf("2. Processes states\n");
+        printf("(Any other key). Exit\n");
         scanf("%d", &type); // Ask for shared memory size from user
         printf("\n\n");
 
@@ -73,7 +74,7 @@ int main()
             shmdt((void *)sizeArray); // Detach memory space
             shmdt((void *)array);     // Detach memory space
         }
-        else
+        else if (type == 1)
         {
             shmsize = shmget(keySize, sizeof(int), IPC_CREAT | 0666); // Get shared memory size
 
@@ -94,6 +95,9 @@ int main()
             shmdt((void *)mapSize); // Detach memory space
             shmdt((void *)array);   // Detach memory space
         }
+        else
+        {
+            return 0;
+        }
     }
-    return 0;
 }
