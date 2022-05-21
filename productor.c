@@ -12,12 +12,19 @@
 
 key_t key = 12345678;
 key_t keySize = 987;
+key_t keyStruct = 1122233;
+key_t keyStructSize = 44332211;
+
 sem_t mutex;
+sem_t espia;
 
 int counterGlobal = 0; // Counter for PID of processes, would be managed by process structure
 // int sizeProcessPage;           // This would be generated randomly by the init function
 // int sizeProcessSeg;
 int SIZE; // Size of shared memory, given by user input in init function
+int *array;
+struct Queue *cola;
+
 
 // Process PCN
 struct PCB
@@ -48,7 +55,49 @@ struct Queue
 {
 	struct Node *first;
 	struct Node *last;
+	int size;
 };
+
+void createArray()
+{
+	while(1)
+	{
+		sem_wait(&espia);
+		struct Node * tmp = cola->first;
+		for(int i = 0; i < cola->size; i++){
+			array[i] = tmp->process.state;
+			tmp = tmp->next;
+		}
+		sem_post(&espia);
+	}
+}
+
+void createSharedMemoryEspia()
+{
+	int shmstructsize;
+    int *mapStructSize;
+	int shmarray;
+	int tamanio = -1;
+
+	while (1)
+	{
+		sem_wait(&espia);
+
+		if(tamanio != cola->size){
+			tamanio = cola->size;
+			shmctl(shmarray, IPC_RMID, NULL); //
+			shmarray = shmget(keyStruct, cola->size * sizeof(int), IPC_CREAT | 0666); // Create shared memory space
+			array = (int *)shmat(shmarray, 0, 0);                    // Map memory space to array
+
+			shmstructsize = shmget(keyStructSize, sizeof(int), IPC_CREAT | 0666); // Create shared memory space by size
+			mapStructSize = (int *)shmat(shmstructsize, 0, 0);                    // Map shared memory space to array
+			mapStructSize[0] = cola->size;	
+		}
+		
+		sem_post(&espia);
+	}
+	
+}
 
 // Inserts process into the queue
 int insertProcess(struct Queue *q, struct PCB pcb)
@@ -68,6 +117,7 @@ int insertProcess(struct Queue *q, struct PCB pcb)
 		q->last->next = tmp;
 		q->last = tmp;
 	}
+	q->size += 1;
 	return 0;
 }
 
@@ -341,6 +391,7 @@ int main()
 	int shmid;
 	int shmsize;
 	int *mapSize;
+	
 	// Select variables
 	int type;
 
@@ -352,7 +403,8 @@ int main()
 	shmdt((void *)mapSize); // Detach memory space
 	printf("Size: %d \n", SIZE);
 
-	struct Queue *cola = (struct Queue *)malloc(sizeof(struct Queue));
+	cola = (struct Queue *)malloc(sizeof(struct Queue));
+	cola->size = 0;
 
 	printf("Select type of memory process\n");
 	printf("1. Page\n");
@@ -367,6 +419,13 @@ int main()
 	// This part would be done by the process creator
 	// segmentProcess or pageProcess would depend on user input
 	pthread_t t1;
+	pthread_t t3;
+	pthread_t t4;
+
+	pthread_create(&t3, NULL, createArray, NULL);
+	pthread_create(&t4, NULL, createSharedMemoryEspia, NULL);
+
+
 	srand(time(NULL));
 	int pthreadTime;
 	int segments;
@@ -401,9 +460,7 @@ int main()
 		}
 		printQueue(cola);
 		printf("\n\n");
-
 		sleep(pthreadTime); // Fixed sleep amount, defined by random in process creator
-
 		counterGlobal++;
 	}
 

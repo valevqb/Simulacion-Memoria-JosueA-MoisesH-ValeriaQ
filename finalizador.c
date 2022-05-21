@@ -11,6 +11,8 @@
 
 key_t key = 12345678;
 key_t keySize = 987;
+key_t keyStruct = 1122233;
+key_t keyStructSize = 44332211;
 sem_t mutex;
 
 int SIZE; // Size of shared memory, given by user input in init function
@@ -42,6 +44,9 @@ int main()
     int shmid;
     int shmsize;
     int *mapSize;
+    int *mapSizeStruct;
+    int sizeStruct;
+    int shmstruct;
 
     // struct PCB *process = malloc(sizeof(struct PCB));
     shmsize = shmget(keySize, sizeof(int), IPC_CREAT | 0666); // Get shared memory size
@@ -52,9 +57,19 @@ int main()
 
     shmdt((void *)mapSize); // Detach memory space
 
+    sizeStruct = shmget(keyStructSize, sizeof(int), IPC_CREAT | 0666);
+    mapSizeStruct = (int *)shmat(sizeStruct, 0, 0);
+
+    shmstruct = shmget(keyStruct, mapSizeStruct[0] * sizeof(int), IPC_CREAT | 0666);
+    shmdt((void *)mapSizeStruct); // Detach memory space
+
+
+
     // Liberate shared memory space, this would be done by the process finalizer
     shmctl(shmid, IPC_RMID, NULL);
     shmctl(shmsize, IPC_RMID, NULL); // Detach memory space
+    shmctl(sizeStruct, IPC_RMID, NULL);
+    shmctl(shmstruct, IPC_RMID, NULL); 
 
     return 0;
 }

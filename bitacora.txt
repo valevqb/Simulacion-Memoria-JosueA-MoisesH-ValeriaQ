@@ -1,45 +1,15 @@
-Actual Time: 2022-05-19 20:29:22
+Actual Time: 2022-05-21 16:28:52
 Search in memory with id: 0
 Actual array: 
 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 
 
-Actual Time: 2022-05-19 20:29:22
+Actual Time: 2022-05-21 16:28:52
 Space found for id: 0
 Actual array: 
-0 0 0 0 0 0 0 0 0 0 0 0 -1 -1 -1 -1 -1 -1 -1 -1 
+0 0 0 0 0 0 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 
 
-Actual Time: 2022-05-19 20:30:16
+Actual Time: 2022-05-21 16:29:12
 Process finish with id: 0
-Actual array: 
--1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 
-
-Actual Time: 2022-05-19 20:30:18
-Search in memory with id: 1
-Actual array: 
--1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 
-
-Actual Time: 2022-05-19 20:30:18
-Space found for id: 1
-Actual array: 
-1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 
-
-Actual Time: 2022-05-19 20:31:06
-Process finish with id: 1
-Actual array: 
--1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 
-
-Actual Time: 2022-05-19 20:31:08
-Search in memory with id: 2
-Actual array: 
--1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 
-
-Actual Time: 2022-05-19 20:31:08
-Space found for id: 2
-Actual array: 
-2 2 2 2 2 2 2 2 2 2 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 
-
-Actual Time: 2022-05-19 20:31:28
-Process finish with id: 2
 Actual array: 
 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 
 
