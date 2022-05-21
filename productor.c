@@ -25,7 +25,6 @@ int SIZE; // Size of shared memory, given by user input in init function
 int *array;
 struct Queue *cola;
 
-
 // Process PCN
 struct PCB
 {
@@ -60,11 +59,12 @@ struct Queue
 
 void createArray()
 {
-	while(1)
+	while (1)
 	{
 		sem_wait(&espia);
-		struct Node * tmp = cola->first;
-		for(int i = 0; i < cola->size; i++){
+		struct Node *tmp = cola->first;
+		for (int i = 0; i < cola->size; i++)
+		{
 			array[i] = tmp->process.state;
 			tmp = tmp->next;
 		}
@@ -75,7 +75,7 @@ void createArray()
 void createSharedMemoryEspia()
 {
 	int shmstructsize;
-    int *mapStructSize;
+	int *mapStructSize;
 	int shmarray;
 	int tamanio = -1;
 
@@ -83,20 +83,20 @@ void createSharedMemoryEspia()
 	{
 		sem_wait(&espia);
 
-		if(tamanio != cola->size){
+		if (tamanio != cola->size)
+		{
 			tamanio = cola->size;
-			shmctl(shmarray, IPC_RMID, NULL); //
+			shmctl(shmarray, IPC_RMID, NULL);										  //
 			shmarray = shmget(keyStruct, cola->size * sizeof(int), IPC_CREAT | 0666); // Create shared memory space
-			array = (int *)shmat(shmarray, 0, 0);                    // Map memory space to array
+			array = (int *)shmat(shmarray, 0, 0);									  // Map memory space to array
 
 			shmstructsize = shmget(keyStructSize, sizeof(int), IPC_CREAT | 0666); // Create shared memory space by size
-			mapStructSize = (int *)shmat(shmstructsize, 0, 0);                    // Map shared memory space to array
-			mapStructSize[0] = cola->size;	
+			mapStructSize = (int *)shmat(shmstructsize, 0, 0);					  // Map shared memory space to array
+			mapStructSize[0] = cola->size;
 		}
-		
+
 		sem_post(&espia);
 	}
-	
 }
 
 // Inserts process into the queue
@@ -391,7 +391,7 @@ int main()
 	int shmid;
 	int shmsize;
 	int *mapSize;
-	
+
 	// Select variables
 	int type;
 
@@ -414,6 +414,7 @@ int main()
 
 	// INIT FUNCTION
 	sem_init(&mutex, 0, 1); // initilalize semaphore
+	sem_init(&espia, 0, 1); // initilalize semaphore
 
 	// TESTING AREA
 	// This part would be done by the process creator
@@ -422,9 +423,8 @@ int main()
 	pthread_t t3;
 	pthread_t t4;
 
-	pthread_create(&t3, NULL, createArray, NULL);
 	pthread_create(&t4, NULL, createSharedMemoryEspia, NULL);
-
+	pthread_create(&t3, NULL, createArray, NULL);
 
 	srand(time(NULL));
 	int pthreadTime;

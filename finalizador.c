@@ -46,6 +46,7 @@ int main()
     int *mapSize;
     int *mapSizeStruct;
     int sizeStruct;
+
     int shmstruct;
 
     // struct PCB *process = malloc(sizeof(struct PCB));
@@ -63,13 +64,11 @@ int main()
     shmstruct = shmget(keyStruct, mapSizeStruct[0] * sizeof(int), IPC_CREAT | 0666);
     shmdt((void *)mapSizeStruct); // Detach memory space
 
-
-
     // Liberate shared memory space, this would be done by the process finalizer
     shmctl(shmid, IPC_RMID, NULL);
     shmctl(shmsize, IPC_RMID, NULL); // Detach memory space
     shmctl(sizeStruct, IPC_RMID, NULL);
-    shmctl(shmstruct, IPC_RMID, NULL); 
+    shmctl(shmstruct, IPC_RMID, NULL);
 
     return 0;
 }
