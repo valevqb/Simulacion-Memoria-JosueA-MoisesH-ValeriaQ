@@ -12,29 +12,30 @@
 key_t key = 12345678;
 key_t keySize = 987;
 
-int SIZE;              // Size of shared memory, given by user input in init function
+int SIZE; // Size of shared memory, given by user input in init function
 
 int main()
 {
     // INIT FUNCTION
     int shmid;
-	int shmidDoc;
+    int shmidDoc;
     int shmsize;
-	int* mapSize;
+    int *mapSize;
 
-	//Write file
-	FILE *files = fopen("bitacora.txt","w");
-	
-	if(!files){
-		printf("Could not create file.\n");
-		exit(EXIT_FAILURE);
-	}
-	//End File memory
-	
-	//Process memory
+    // Write file
+    FILE *files = fopen("bitacora.txt", "w");
+
+    if (!files)
+    {
+        printf("Could not create file.\n");
+        exit(EXIT_FAILURE);
+    }
+    // End File memory
+
+    // Process memory
     printf("Enter shared memory size: ");
-    scanf("%d", &SIZE); // Ask for shared memory size from user
-    printf("\n\n");                                 // initilalize semaphore
+    scanf("%d", &SIZE);                                        // Ask for shared memory size from user
+    printf("\n\n");                                            // initilalize semaphore
     shmid = shmget(key, SIZE * sizeof(int), IPC_CREAT | 0666); // Create shared memory space
     int *array = (int *)shmat(shmid, 0, 0);                    // Map memory space to array
     for (int pos = 0; pos < SIZE; pos++)                       // Initialize empty memory space with -1
@@ -42,8 +43,8 @@ int main()
         array[pos] = -1;
     }
 
-    shmsize =  shmget(keySize, sizeof(int), IPC_CREAT | 0666); // Create shared memory space by size
-    mapSize = (int*)shmat(shmsize, 0, 0); // Map shared memory space to array
+    shmsize = shmget(keySize, sizeof(int), IPC_CREAT | 0666); // Create shared memory space by size
+    mapSize = (int *)shmat(shmsize, 0, 0);                    // Map shared memory space to array
     mapSize[0] = SIZE;
 
     // END OF INIT FUNCTION

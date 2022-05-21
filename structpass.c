@@ -84,7 +84,7 @@ int main()
 {
     // INIT FUNCTION
     int shmid;
-    struct PCB process ;
+    struct PCB process;
 
     struct Node *tmp = malloc(sizeof(struct Node));
     shmid = shmget(key, sizeof(tmp), IPC_CREAT | 0666); // Create shared memory space
