@@ -56,7 +56,7 @@ int main()
         printf("2. Processes states\n");
         printf("(Any other key). Exit\n");
         scanf("%d", &type); // Ask for shared memory size from user
-        printf("\n\n");
+        printf("\n");
 
         if (type == 2)
         {
@@ -69,7 +69,7 @@ int main()
 
             for (int i = 0; i < SIZE; i++)
             {
-                printf("State: %d, Id: %d\n", array[i], i);
+                printf("State: %d, Id: %d\n\n", array[i], i);
             }
             shmdt((void *)sizeArray); // Detach memory space
             shmdt((void *)array);     // Detach memory space
@@ -80,7 +80,7 @@ int main()
 
             mapSize = (int *)shmat(shmsize, 0, 0);
 
-            printf("Size: %d \n", mapSize[0]);
+            printf("Size: %d \n\n", mapSize[0]);
 
             shmid = shmget(key, mapSize[0] * sizeof(int), IPC_CREAT | 0666); // Get shared memory
             int *array = (int *)shmat(shmid, 0, 0);                          // Map memory to arr
