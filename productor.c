@@ -158,7 +158,7 @@ void printQueue(struct Queue *q)
 	return;
 }
 
-void writeBit(int pId, int state, int *array, FILE *openFile)
+void writeBit(int pId, int state, int *array, FILE *openFile, int spaces[], int sizes)
 {
 	time_t t = time(NULL);
 	struct tm tm = *localtime(&t);
@@ -169,22 +169,26 @@ void writeBit(int pId, int state, int *array, FILE *openFile)
 	if (state == 1)
 	{
 		printf("-------Busca espacio %d-------\n", pId);		  // PRINT FOR TESTING PURPOSES
-		fprintf(openFile, "Search in memory with id: %d\n", pId); // Write in file
+		fprintf(openFile, "Search in memory with id %d\n", pId); // Write in file
 	}
 	else if (state == 2)
 	{
 		printf("------Encontro espacio %d-----\n", pId);	// PRINT FOR TESTING PURPOSES
-		fprintf(openFile, "Space found for id: %d\n", pId); // Write in file
+		fprintf(openFile, "Spaces "); // Write in file
+		for (int i = 0; i < sizes; i++){
+			fprintf(openFile, "%d, ", spaces[i]);
+		}
+		fprintf(openFile, "found for id %d\n", pId); // Write in file
 	}
 	else if (state == 3)
 	{
 		printf("----No encontro espacio muere proceso %d----\n", pId); // PRINT FOR TESTING PURPOSES
-		fprintf(openFile, "Process dies id: %d\n", pId);			   // Write in file
+		fprintf(openFile, "Process id %d\n", pId);			   // Write in file
 	}
 	else if (state == 4)
 	{
 		printf("-------Libero espacio %d------\n", pId);		// PRINT FOR TESTING PURPOSES
-		fprintf(openFile, "Process finish with id: %d\n", pId); // Write in file
+		fprintf(openFile, "Process with id %d finishes\n", pId); // Write in file
 	}
 
 	fprintf(openFile, "Actual array: \n"); // PRINT FOR TESTING PURPOSES
@@ -214,7 +218,9 @@ void pageProcess(struct Node *arg)
 	shmid = shmget(key, SIZE * sizeof(int), IPC_CREAT | 0666); // Get shared memory
 	int *array = (int *)shmat(shmid, 0, 0);					   // Map memory to array
 
-	writeBit(idProcess, 1, array, file);
+	writeBit(idProcess, 1, array, file, NULL, 0);
+	int location[arg->process.spaces];
+	int countSpace = 0;
 
 	// Loop to check for available memory
 	for (int pos = 0; pos < SIZE; pos++) // Here, SIZE would be replaced by the amount of segments
@@ -223,6 +229,8 @@ void pageProcess(struct Node *arg)
 		{
 			segCount++; // Increase segment count
 			array[pos] = idProcess;
+			location[countSpace] = pos;
+			countSpace++;
 		}
 		if (segCount == arg->process.spaces) // If all the space was found
 		{
@@ -234,7 +242,7 @@ void pageProcess(struct Node *arg)
 	if (full) // If there was memory available
 	{
 		arg->process.state = 2; // Process in memory
-		writeBit(idProcess, 2, array, file);
+		writeBit(idProcess, 2, array, file, location, countSpace);
 	}
 	else // If there was no memory available
 	{
@@ -246,7 +254,7 @@ void pageProcess(struct Node *arg)
 			}
 		}
 		arg->process.state = 3; // Process dies
-		writeBit(idProcess, 3, array, file);
+		writeBit(idProcess, 3, array, file, NULL, 0);
 		shmdt((void *)array); // Detach memory segment
 		sem_post(&mutex);	  // Set semaphore to ready state
 		fclose(file);
@@ -274,12 +282,13 @@ void pageProcess(struct Node *arg)
 	}
 	file = fopen("bitacora.txt", "a");
 	arg->process.state = 4; // Process finish
-	writeBit(idProcess, 4, array, file);
+	writeBit(idProcess, 4, array, file, NULL, 0);
 	shmdt((void *)array); // Detach memory segment
 	fclose(file);
 	sem_post(&mutex); // Set semaphore to ready state
 }
 
+////////////////FALTA////////////////
 void segmentProcess(struct Node *arg)
 {
 	int idProcess = arg->process.pId; // Save current PID counter locally
@@ -303,7 +312,13 @@ void segmentProcess(struct Node *arg)
 
 	shmid = shmget(key, SIZE * sizeof(int), IPC_CREAT | 0666); // Get memory space
 	int *array = (int *)shmat(shmid, 0, 0);					   // Map shared memory space to array
-	writeBit(idProcess, 1, array, file);
+	writeBit(idProcess, 1, array, file, NULL, 0);
+	int totalSp = 0;
+	for (int i = 0; arg->process.spaces > i; i++){
+		totalSp = totalSp + arg->process.sizeP[i];
+	}
+	int location[totalSp];
+	int countSpace = 0;
 
 	// Loop to check for available memory
 	for (int pos = 0; pos < arg->process.spaces; pos++) // Here, SIZE would be replaced by the amount of pages
@@ -322,6 +337,8 @@ void segmentProcess(struct Node *arg)
 					{
 						segCount--;
 						array[pos1 - segCount] = idProcess;
+						location[countSpace] = pos1 - segCount;
+						countSpace++;
 					}
 					full = 1; // Memory wasn't full
 					break;
@@ -342,7 +359,7 @@ void segmentProcess(struct Node *arg)
 	if (full) // If space was found in memory
 	{
 		arg->process.state = 2; // Process in memory
-		writeBit(idProcess, 2, array, file);
+		writeBit(idProcess, 2, array, file, location, countSpace);
 	}
 	else // If space was not found in memory
 	{
@@ -354,7 +371,7 @@ void segmentProcess(struct Node *arg)
 			}
 		}
 		arg->process.state = 3; // Process dies
-		writeBit(idProcess, 3, array, file);
+		writeBit(idProcess, 3, array, file, NULL, 0);
 		fclose(file);
 		shmdt((void *)array); // Detach memory space
 		sem_post(&mutex);	  // Set semaphore to ready state
@@ -382,7 +399,7 @@ void segmentProcess(struct Node *arg)
 	}
 	file = fopen("bitacora.txt", "a");
 	arg->process.state = 4; // Process finish
-	writeBit(idProcess, 4, array, file);
+	writeBit(idProcess, 4, array, file, NULL, 0);
 	fclose(file);
 	shmdt((void *)array); // Detach memory space
 	sem_post(&mutex);	  // Set semaphore to ready state
@@ -477,3 +494,4 @@ int main()
 
 	return 0;
 }
+
