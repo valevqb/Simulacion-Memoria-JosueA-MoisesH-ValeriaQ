@@ -24,6 +24,7 @@ int counterGlobal = 0; // Counter for PID of processes, would be managed by proc
 int SIZE; // Size of shared memory, given by user input in init function
 int *array;
 struct Queue *cola;
+int tamanio;
 
 // Process PCN
 struct PCB
@@ -59,16 +60,21 @@ struct Queue
 
 void createArray()
 {
+
 	while (1)
 	{
-		sem_wait(&espia);
-		struct Node *tmp = cola->first;
-		for (int i = 0; i < cola->size; i++)
+		if (tamanio == cola->size)
 		{
-			array[i] = tmp->process.state;
-			tmp = tmp->next;
+			sem_wait(&espia);
+			tamanio = cola->size;
+			struct Node *tmp = cola->first;
+			for (int i = 0; i < cola->size; i++)
+			{
+				array[i] = tmp->process.state;
+				tmp = tmp->next;
+			}
+			sem_post(&espia);
 		}
-		sem_post(&espia);
 	}
 }
 
@@ -77,14 +83,13 @@ void createSharedMemoryEspia()
 	int shmstructsize;
 	int *mapStructSize;
 	int shmarray;
-	int tamanio = -1;
+	tamanio = -1;
 
 	while (1)
 	{
-		sem_wait(&espia);
-
 		if (tamanio != cola->size)
 		{
+			sem_wait(&espia);
 			tamanio = cola->size;
 			shmctl(shmarray, IPC_RMID, NULL);										  //
 			shmarray = shmget(keyStruct, cola->size * sizeof(int), IPC_CREAT | 0666); // Create shared memory space
@@ -93,9 +98,8 @@ void createSharedMemoryEspia()
 			shmstructsize = shmget(keyStructSize, sizeof(int), IPC_CREAT | 0666); // Create shared memory space by size
 			mapStructSize = (int *)shmat(shmstructsize, 0, 0);					  // Map shared memory space to array
 			mapStructSize[0] = cola->size;
+			sem_post(&espia);
 		}
-
-		sem_post(&espia);
 	}
 }
 
@@ -423,8 +427,8 @@ int main()
 	pthread_t t3;
 	pthread_t t4;
 
-	pthread_create(&t4, NULL, createSharedMemoryEspia, NULL);
-	pthread_create(&t3, NULL, createArray, NULL);
+	// pthread_create(&t4, NULL, createSharedMemoryEspia, NULL);
+	// pthread_create(&t3, NULL, createArray, NULL);
 
 	srand(time(NULL));
 	int pthreadTime;
