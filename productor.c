@@ -87,9 +87,9 @@ void createSharedMemoryEspia()
 
 	while (1)
 	{
+		sem_wait(&espia);
 		if (tamanio != cola->size)
 		{
-			sem_wait(&espia);
 			tamanio = cola->size;
 			shmctl(shmarray, IPC_RMID, NULL);										  //
 			shmarray = shmget(keyStruct, cola->size * sizeof(int), IPC_CREAT | 0666); // Create shared memory space
@@ -98,8 +98,8 @@ void createSharedMemoryEspia()
 			shmstructsize = shmget(keyStructSize, sizeof(int), IPC_CREAT | 0666); // Create shared memory space by size
 			mapStructSize = (int *)shmat(shmstructsize, 0, 0);					  // Map shared memory space to array
 			mapStructSize[0] = cola->size;
-			sem_post(&espia);
 		}
+		sem_post(&espia);
 	}
 }
 
@@ -427,8 +427,8 @@ int main()
 	pthread_t t3;
 	pthread_t t4;
 
-	// pthread_create(&t4, NULL, createSharedMemoryEspia, NULL);
-	// pthread_create(&t3, NULL, createArray, NULL);
+	pthread_create(&t4, NULL, createSharedMemoryEspia, NULL);
+	pthread_create(&t3, NULL, createArray, NULL);
 
 	srand(time(NULL));
 	int pthreadTime;

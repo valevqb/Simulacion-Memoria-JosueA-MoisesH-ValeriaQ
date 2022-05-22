@@ -1,20 +1,10 @@
-Actual Time: 2022-05-22 12:25:27
+Actual Time: 2022-05-22 12:44:30
 Search in memory with id: 0
 Actual array: 
 -1 
 
-Actual Time: 2022-05-22 12:25:27
+Actual Time: 2022-05-22 12:44:30
 Process dies id: 0
-Actual array: 
--1 
-
-Actual Time: 2022-05-22 12:26:03
-Search in memory with id: 1
-Actual array: 
--1 
-
-Actual Time: 2022-05-22 12:26:03
-Process dies id: 1
 Actual array: 
 -1 
 
