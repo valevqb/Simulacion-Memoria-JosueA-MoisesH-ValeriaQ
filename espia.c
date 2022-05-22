@@ -54,7 +54,7 @@ int main()
         printf("Select type of consultation\n");
         printf("1. Memory state\n");
         printf("2. Processes states\n");
-        printf("(Any other key). Exit\n");
+        printf("3. Exit\n");
         scanf("%d", &type); // Ask for shared memory size from user
         printf("\n");
 
@@ -80,7 +80,7 @@ int main()
 
             mapSize = (int *)shmat(shmsize, 0, 0);
 
-            printf("Size: %d \n\n", mapSize[0]);
+            printf("Memory size: %d \n\n", mapSize[0]);
 
             shmid = shmget(key, mapSize[0] * sizeof(int), IPC_CREAT | 0666); // Get shared memory
             int *array = (int *)shmat(shmid, 0, 0);                          // Map memory to arr
@@ -90,14 +90,14 @@ int main()
             {
                 printf("%d | ", array[i]);
             }
-            printf("\n");
+            printf("\n\n");
 
             shmdt((void *)mapSize); // Detach memory space
             shmdt((void *)array);   // Detach memory space
         }
-        else
+        else if (type == 3)
         {
-			exit(0);
+	    exit(0);
             return 0;
         }
     }
