@@ -97,7 +97,9 @@ int main()
         }
         else
         {
+			exit(0);
             return 0;
         }
     }
 }
+
