@@ -482,12 +482,6 @@ int main()
 		process.pId = counterGlobal;
 		process.state = 0;
 		insertProcess(cola, process);
-		
-		FILE *file = fopen("bitacora.txt", "a"); // Open file
-		shmid = shmget(key, SIZE * sizeof(int), IPC_CREAT | 0666); // Get shared memory
-		int *array = (int *)shmat(shmid, 0, 0);					   // Map memory to array
-		writeBit(counterGlobal, 0, array, file, NULL, 0);
-		fclose(file);
 
 		if (type == 2)
 		{
@@ -497,7 +491,6 @@ int main()
 			for (int i = 0; segments > i; i++)
 			{
 				cola->last->process.sizeP[i] = rand() % (3 - 1 + 1) + 1;
-				//printf("Espacios %d", cola->last->process.sizeP[i]);
 			}
 			cola->last->process.spaces = segments;
 			pthread_create(&t2, NULL, segmentProcess, cola->last);
