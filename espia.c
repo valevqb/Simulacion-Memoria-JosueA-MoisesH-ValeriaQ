@@ -49,9 +49,10 @@ int main()
     int *sizeArray;
     int *array;
     int type;
+	
     while (1)
     {
-        printf("Select type of consultation\n");
+        printf("\nSelect type of consultation\n");
         printf("1. Memory state\n");
         printf("2. Processes states\n");
         printf("3. Exit\n");
@@ -63,16 +64,28 @@ int main()
             shmarraysize = shmget(keyStructSize, sizeof(int), IPC_CREAT | 0666); // Get shared memory size
             sizeArray = (int *)shmat(shmarraysize, 0, 0);
             SIZE = sizeArray[0];
+			
+			if(SIZE == 0){
+				printf("Please create a shared memory with a size greater than 0.\n\n");
+				return 0;
+			}
 
             shmarray = shmget(keyStruct, SIZE * sizeof(int), IPC_CREAT | 0666); // Get shared memory size
             array = (int *)shmat(shmarray, 0, 0);
 
-            for (int i = 0; i < SIZE; i++)
+            for (int i = 0; i < SIZE+1; i++)
             {
-                printf("State: %d, Id: %d\n\n", array[i], i);
+				printf("Id: %d, ", i);
+				if(array[i] == 0) printf("State: blocked\n");
+				else if(array[i] == 1) printf("State: searching in memory\n");
+                else if(array[i] == 2) printf("State: in memory\n");
+				else if(array[i] == 3) printf("State: death\n");
+				else if(array[i] == 4) printf("State: already done\n");
+				//printf("State: %d, Id: %d\n", array[i], i);
             }
             shmdt((void *)sizeArray); // Detach memory space
             shmdt((void *)array);     // Detach memory space
+			printf("\n");
         }
         else if (type == 1)
         {
@@ -92,12 +105,12 @@ int main()
             }
             printf("\n\n");
 
-            shmdt((void *)mapSize); // Detach memory space
-            shmdt((void *)array);   // Detach memory space
+            //shmdt((void *)mapSize); // Detach memory space
+            //shmdt((void *)array);   // Detach memory space
         }
         else if (type == 3)
         {
-	    exit(0);
+			exit(0);
             return 0;
         }
     }
