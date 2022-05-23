@@ -1,10 +1,46 @@
-Actual Time: 2022-05-22 12:44:30
-Search in memory with id: 0
+Actual Time: 2022-05-23 17:17:41
+Process 0 has been created and waiting for a signal
+Actual Time: 2022-05-23 17:17:41
+0 id is searching in memory
 Actual array: 
--1 
+0 0 0 0 0 0 0 0 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 
 
-Actual Time: 2022-05-22 12:44:30
-Process dies id: 0
+Actual Time: 2022-05-23 17:17:41
+Spaces 0, 1, 2, 3, 4, 5, 6, 7, found for id 0
 Actual array: 
--1 
+0 0 0 0 0 0 0 0 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 
+
+Actual Time: 2022-05-23 17:18:03
+Process with id 0 finished
+Actual array: 
+-1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 
+
+Actual Time: 2022-05-23 17:18:34
+Process 1 has been created and waiting for a signal
+Actual Time: 2022-05-23 17:18:34
+1 id is searching in memory
+Actual array: 
+1 1 1 1 1 1 1 1 1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 
+
+Actual Time: 2022-05-23 17:18:34
+Spaces 0, 1, 2, 3, 4, 5, 6, 7, 8, found for id 1
+Actual array: 
+1 1 1 1 1 1 1 1 1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 
+
+Actual Time: 2022-05-23 17:19:09
+Process with id 1 finished
+Actual array: 
+-1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 
+
+Actual Time: 2022-05-23 17:19:21
+Process 2 has been created and waiting for a signal
+Actual Time: 2022-05-23 17:19:21
+2 id is searching in memory
+Actual array: 
+2 2 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 
+
+Actual Time: 2022-05-23 17:19:21
+Spaces 0, 1, found for id 2
+Actual array: 
+2 2 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 
 

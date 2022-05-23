@@ -23,7 +23,7 @@ int counterGlobal = 0; // Counter for PID of processes, would be managed by proc
 // int sizeProcessPage;           // This would be generated randomly by the init function
 // int sizeProcessSeg;
 int SIZE; // Size of shared memory, given by user input in init function
-int *array;
+int *arraySP;
 struct Queue *cola;
 int tamanio;
 
@@ -59,6 +59,15 @@ struct Queue
 	int size;
 };
 
+struct Message
+{
+	int pId; 
+	int state; 
+	int *array; 
+	int *spaces; 
+	int sizes;
+};
+
 void createArray()
 {
 
@@ -71,7 +80,7 @@ void createArray()
 			struct Node *tmp = cola->first;
 			for (int i = 0; i < cola->size; i++)
 			{
-				array[i] = tmp->process.state;
+				arraySP[i] = tmp->process.state;
 				tmp = tmp->next;
 			}
 			sem_post(&espia);
@@ -94,7 +103,7 @@ void createSharedMemoryEspia()
 			tamanio = cola->size;
 			shmctl(shmarray, IPC_RMID, NULL);										  //
 			shmarray = shmget(keyStruct, cola->size * sizeof(int), IPC_CREAT | 0666); // Create shared memory space
-			array = (int *)shmat(shmarray, 0, 0);									  // Map memory space to array
+			arraySP = (int *)shmat(shmarray, 0, 0);									  // Map memory space to array
 
 			shmstructsize = shmget(keyStructSize, sizeof(int), IPC_CREAT | 0666); // Create shared memory space by size
 			mapStructSize = (int *)shmat(shmstructsize, 0, 0);					  // Map shared memory space to array
@@ -159,53 +168,58 @@ void printQueue(struct Queue *q)
 	return;
 }
 
-void memory(){
-}
-
-void writeBit(int pId, int state, int *array, FILE *openFile, int spaces[], int sizes)
+void *writeBit(void *arg)
 {
+	struct Message *argumentos = (struct Message*) arg;
+	sem_wait(&bitacora);
+	FILE *openFile = fopen("bitacora.txt", "a"); // Open file
 	time_t t = time(NULL);
 	struct tm tm = *localtime(&t);
 	fprintf(openFile,
 			"Actual Time: %d-%02d-%02d %02d:%02d:%02d\n",
 			tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
 
-	if (state == 0){
-		fprintf(openFile, "Process %d has been created and waiting for signal\n", pId);
-		printf("Process %d has been created and waiting for signal\n", pId);
+	if (argumentos->state == 0){
+		fprintf(openFile, "Process %d has been created and waiting for a signal\n", argumentos->pId);
+		printf("Process %d has been created and waiting for a signal\n", argumentos->pId);
+		fclose(openFile);
+		sem_post(&bitacora);
+		return;
 	}
-	else if (state == 1)
+	else if (argumentos->state == 1)
 	{
-		printf("%d id is searching in memory\n", pId);		  // PRINT FOR TESTING PURPOSES
-		fprintf(openFile, "%d id is searching in memory\n", pId); // Write in file
+		printf("%d id is searching in memory\n", argumentos->pId);		  // PRINT FOR TESTING PURPOSES
+		fprintf(openFile, "%d id is searching in memory\n", argumentos->pId); // Write in file
 	}
-	else if (state == 2)
+	else if (argumentos->state == 2)
 	{
-		printf("Spaces found for id %d\n", pId);	// PRINT FOR TESTING PURPOSES
+		printf("Spaces found for id %d\n", argumentos->pId);	// PRINT FOR TESTING PURPOSES
 		fprintf(openFile, "Spaces "); // Write in file
-		for (int i = 0; i < sizes; i++){
-			fprintf(openFile, "%d, ", spaces[i]);
+		for (int i = 0; i < argumentos->sizes; i++){
+			fprintf(openFile, "%d, ", argumentos->spaces[i]);
 		}
-		fprintf(openFile, "found for id %d\n", pId); // Write in file
+		fprintf(openFile, "found for id %d\n", argumentos->pId); // Write in file
 	}
-	else if (state == 3)
+	else if (argumentos->state == 3)
 	{
-		printf("Process id %d dead\n", pId); // PRINT FOR TESTING PURPOSES
-		fprintf(openFile, "Process id %d dead\n", pId);			   // Write in file
+		printf("Process id %d dead\n", argumentos->pId); // PRINT FOR TESTING PURPOSES
+		fprintf(openFile, "Process id %d dead\n", argumentos->pId);			   // Write in file
 	}
-	else if (state == 4)
+	else if (argumentos->state == 4)
 	{
-		printf("Process with id %d finished\n", pId);		// PRINT FOR TESTING PURPOSES
-		fprintf(openFile, "Process with id %d finished\n", pId); // Write in file
+		printf("Process with id %d finished\n", argumentos->pId);		// PRINT FOR TESTING PURPOSES
+		fprintf(openFile, "Process with id %d finished\n", argumentos->pId); // Write in file
 	}
 
 	fprintf(openFile, "Actual array: \n"); // PRINT FOR TESTING PURPOSES
 
 	for (int pos = 0; pos < SIZE; pos++) // Print memory space status, FOR TESTING PURPOSES
 	{
-		fprintf(openFile, "%d ", array[pos]);
+		fprintf(openFile, "%d ", argumentos->array[pos]);
 	}
 	fprintf(openFile, "\n\n"); // PRINT FOR TESTING PURPOSES
+	fclose(openFile);
+	sem_post(&bitacora);
 }
 
 void pageProcess(struct Node *arg)
@@ -214,19 +228,26 @@ void pageProcess(struct Node *arg)
 	int shmid;
 	int full = 0;	  // Flag for memory availability ; 0 = space was not found, 1 = space was found
 	int segCount = 0; // Counter to check if there is enough continuous space
+	pthread_t bit;
+	struct Message *argumentos = (struct Message*)malloc(sizeof (struct Message));
 
 	/*
 	 * Here is where the sync algorithm would be implemented
 	 * Before waiting at the semaphore, each process would check if it's their turn
 	 */
 	sem_wait(&mutex);						 // Send wait signal to semaphore when ready
-	FILE *file = fopen("bitacora.txt", "a"); // Open file
 	arg->process.state = 1;					 // Search memory
 
 	shmid = shmget(key, SIZE * sizeof(int), IPC_CREAT | 0666); // Get shared memory
 	int *array = (int *)shmat(shmid, 0, 0);					   // Map memory to array
 
-	writeBit(idProcess, 1, array, file, NULL, 0);
+	argumentos->pId = idProcess;
+	argumentos->state = arg->process.state;
+	argumentos->array = array;
+	argumentos->spaces = NULL;
+	argumentos->sizes = 0;
+	// writeBit(idProcess, 1, array, NULL, 0);
+	pthread_create(&bit,NULL, writeBit, (void *)argumentos);
 	int location[arg->process.spaces];
 	int countSpace = 0;
 
@@ -247,10 +268,18 @@ void pageProcess(struct Node *arg)
 		}
 	}
 
+	pthread_t bit2;
+	struct Message *argumentos2 = (struct Message*)malloc(sizeof (struct Message));
 	if (full) // If there was memory available
 	{
 		arg->process.state = 2; // Process in memory
-		writeBit(idProcess, 2, array, file, location, countSpace);
+		// writeBit(idProcess, 2, array, location, countSpace);
+		argumentos2->pId = idProcess;
+		argumentos2->state = arg->process.state;
+		argumentos2->array = array;
+		argumentos2->spaces = location;
+		argumentos2->sizes = countSpace;
+		pthread_create(&bit2,NULL, writeBit, (void *)argumentos2);
 	}
 	else // If there was no memory available
 	{
@@ -262,15 +291,19 @@ void pageProcess(struct Node *arg)
 			}
 		}
 		arg->process.state = 3; // Process dies
-		writeBit(idProcess, 3, array, file, NULL, 0);
-		shmdt((void *)array); // Detach memory segment
+		// writeBit(idProcess, 3, array, NULL, 0);
+		argumentos2->pId = idProcess;
+		argumentos2->state = arg->process.state;
+		argumentos2->array = array;
+		argumentos2->spaces = NULL;
+		argumentos2->sizes = 0;
+		pthread_create(&bit2,NULL, writeBit, (void *)argumentos2);
+		// shmdt((void *)array); // Detach memory segment
 		sem_post(&mutex);	  // Set semaphore to ready state
-		fclose(file);
 		return; // Process dies
 	}
 
-	shmdt((void *)array); // Detach memory segment
-	fclose(file);
+	// shmdt((void *)array); // Detach memory segment
 	sem_post(&mutex); // Set semaphore to ready state
 
 	srand(time(NULL));
@@ -288,11 +321,17 @@ void pageProcess(struct Node *arg)
 			array[pos] = -1;
 		}
 	}
-	file = fopen("bitacora.txt", "a");
+	pthread_t bit3;
+	struct Message *argumentos3 = (struct Message*)malloc(sizeof (struct Message));
 	arg->process.state = 4; // Process finish
-	writeBit(idProcess, 4, array, file, NULL, 0);
-	shmdt((void *)array); // Detach memory segment
-	fclose(file);
+	// writeBit(idProcess, 4, array, NULL, 0);
+	argumentos3->pId = idProcess;
+	argumentos3->state = arg->process.state;
+	argumentos3->array = array;
+	argumentos3->spaces = NULL;
+	argumentos3->sizes = 0;
+	pthread_create(&bit3,NULL, writeBit, (void *)argumentos3);
+	// shmdt((void *)array); // Detach memory segment
 	sem_post(&mutex); // Set semaphore to ready state
 }
 
@@ -308,12 +347,21 @@ void segmentProcess(struct Node *arg)
 	 */
 
 	sem_wait(&mutex);						 // Send wait signal to semaphore when ready
-	FILE *file = fopen("bitacora.txt", "a"); // Open file
 	arg->process.state = 1;					 // Search memory
+	pthread_t bit;
+	struct Message *argumentos = (struct Message*)malloc(sizeof (struct Message));
 
 	shmid = shmget(key, SIZE * sizeof(int), IPC_CREAT | 0666); // Get memory space
 	int *array = (int *)shmat(shmid, 0, 0);					   // Map shared memory space to array
-	writeBit(idProcess, 1, array, file, NULL, 0);
+
+
+	argumentos->pId = idProcess;
+	argumentos->state = arg->process.state;
+	argumentos->array = array;
+	argumentos->spaces = NULL;
+	argumentos->sizes = 0;
+	pthread_create(&bit,NULL, writeBit, (void *)argumentos);
+	// writeBit(idProcess, 1, array, NULL, 0);
 	int totalSp = 0;
 	for (int i = 0; arg->process.spaces > i; i++){
 		totalSp = totalSp + arg->process.sizeP[i];
@@ -357,10 +405,18 @@ void segmentProcess(struct Node *arg)
 		}
 	}
 
+	pthread_t bit2;
+	struct Message *argumentos2 = (struct Message*)malloc(sizeof (struct Message));
 	if (full) // If space was found in memory
 	{
 		arg->process.state = 2; // Process in memory
-		writeBit(idProcess, 2, array, file, location, countSpace);
+		argumentos2->pId = idProcess;
+		argumentos2->state = arg->process.state;
+		argumentos2->array = array;
+		argumentos2->spaces = NULL;
+		argumentos2->sizes = 0;
+		pthread_create(&bit2,NULL, writeBit, (void *)argumentos2);
+		// writeBit(idProcess, 2, array, location, countSpace);
 	}
 	else // If space was not found in memory
 	{
@@ -372,16 +428,19 @@ void segmentProcess(struct Node *arg)
 			}
 		}
 		arg->process.state = 3; // Process dies
-		writeBit(idProcess, 3, array, file, NULL, 0);
-		fclose(file);
-		//shmdt((void *)array); // Detach memory space
+		argumentos2->pId = idProcess;
+		argumentos2->state = arg->process.state;
+		argumentos2->array = array;
+		argumentos2->spaces = NULL;
+		argumentos2->sizes = 0;
+		pthread_create(&bit2,NULL, writeBit, (void *)argumentos2);
+		// writeBit(idProcess, 3, array, NULL, 0);
+		// shmdt((void *)array); // Detach memory space
 		sem_post(&mutex);	  // Set semaphore to ready state
 		return;				  // Process dies
 	}
 
-	fclose(file);
-
-	//shmdt((void *)array); // Detach memory space
+	// shmdt((void *)array); // Detach memory space
 	sem_post(&mutex);	  // Set semaphore to ready state
 
 	srand(time(NULL));
@@ -398,10 +457,16 @@ void segmentProcess(struct Node *arg)
 			array[pos] = -1;
 		}
 	}
-	file = fopen("bitacora.txt", "a");
+	pthread_t bit3;
+	struct Message *argumentos3 = (struct Message*)malloc(sizeof (struct Message));
 	arg->process.state = 4; // Process finish
-	writeBit(idProcess, 4, array, file, NULL, 0);
-	fclose(file);
+	argumentos3->pId = idProcess;
+	argumentos3->state = arg->process.state;
+	argumentos3->array = array;
+	argumentos3->spaces = NULL;
+	argumentos3->sizes = 0;
+	pthread_create(&bit3, NULL, writeBit, (void *)argumentos3);
+	// writeBit(idProcess, 4, array, NULL, 0);
 	//shmdt((void *)array); // Detach memory space
 	sem_post(&mutex);	  // Set semaphore to ready state
 }
@@ -469,6 +534,8 @@ int main()
 	pthread_t t3;
 	pthread_t t4;
 	pthread_t t5;
+	pthread_t bit0;
+	struct Message *argumentos = (struct Message*)malloc(sizeof (struct Message));
 
 	pthread_create(&t4, NULL, createSharedMemoryEspia, NULL);
 	pthread_create(&t3, NULL, createArray, NULL);
@@ -484,6 +551,12 @@ int main()
 		process.pId = counterGlobal;
 		process.state = 0;
 		insertProcess(cola, process);
+		argumentos->pId = process.pId;
+		argumentos->state = 0;
+		argumentos->array = NULL;
+		argumentos->spaces = NULL;
+		argumentos->sizes = 0;
+		pthread_create(&bit0, NULL, writeBit, (void *)argumentos);
 
 		if (type == 2)
 		{
