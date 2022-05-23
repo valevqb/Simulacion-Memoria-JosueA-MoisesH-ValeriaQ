@@ -17,6 +17,7 @@ key_t keyStructSize = 44332211;
 
 sem_t mutex;
 sem_t espia;
+sem_t bitacora;
 
 int counterGlobal = 0; // Counter for PID of processes, would be managed by process structure
 // int sizeProcessPage;           // This would be generated randomly by the init function
@@ -170,8 +171,8 @@ void writeBit(int pId, int state, int *array, FILE *openFile, int spaces[], int 
 			tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
 
 	if (state == 0){
-		fprintf(openFile, "Process %d has been created\n", pId);
-		printf("Process %d has been created\n", pId);
+		fprintf(openFile, "Process %d has been created and waiting for signal\n", pId);
+		printf("Process %d has been created and waiting for signal\n", pId);
 	}
 	else if (state == 1)
 	{
@@ -290,7 +291,7 @@ void pageProcess(struct Node *arg)
 	file = fopen("bitacora.txt", "a");
 	arg->process.state = 4; // Process finish
 	writeBit(idProcess, 4, array, file, NULL, 0);
-	//shmdt((void *)array); // Detach memory segment
+	shmdt((void *)array); // Detach memory segment
 	fclose(file);
 	sem_post(&mutex); // Set semaphore to ready state
 }
@@ -458,6 +459,7 @@ int main()
 	// INIT FUNCTION
 	sem_init(&mutex, 0, 1); // initilalize semaphore
 	sem_init(&espia, 0, 1); // initilalize semaphore
+	sem_init(&bitacora, 0, 1); // initilalize semaphore
 
 	// TESTING AREA
 	// This part would be done by the process creator
@@ -525,6 +527,8 @@ int main()
 
 	// Liberate semaphore memory, this would be done by the process finalizer
 	sem_destroy(&mutex);
+	sem_destroy(&espia);
+	sem_destroy(&bitacora);
 
 	return 0;
 }
