@@ -56,6 +56,11 @@ int main()
 
     shmid = shmget(key, SIZE * sizeof(int), IPC_CREAT | 0666); // Create shared memory space
 
+	if(SIZE == 0){
+		printf("Please create a shared memory with a size greater than 0.\n\n");
+		return 0;
+	}
+	
     shmdt((void *)mapSize); // Detach memory space
 
     sizeStruct = shmget(keyStructSize, sizeof(int), IPC_CREAT | 0666);
@@ -69,6 +74,9 @@ int main()
     shmctl(shmsize, IPC_RMID, NULL); // Detach memory space
     shmctl(sizeStruct, IPC_RMID, NULL);
     shmctl(shmstruct, IPC_RMID, NULL);
+	
+	printf("\nMemory has been ended.\n\n");
 
     return 0;
 }
+
