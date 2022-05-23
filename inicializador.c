@@ -31,11 +31,17 @@ int main()
         exit(EXIT_FAILURE);
     }
     // End File memory
+	
+	shmsize = shmget(keySize, sizeof(int), IPC_CREAT | 0666); // Create shared memory space by size
+    mapSize = (int *)shmat(shmsize, 0, 0);                    // Map shared memory space to array
+    if (mapSize[0] != 0){
+		printf("\nA shared memory already exist.\nIn case you want to create a new one run ./finalizador.\n\n");
+		return 0;
+	}
 
     // Process memory
-    printf("Enter shared memory size: ");
-    scanf("%d", &SIZE);                                        // Ask for shared memory size from user
-    printf("\n\n");                                            // initilalize semaphore
+    printf("\nEnter shared memory size in numbers: ");
+    scanf("%d", &SIZE);                                        // Ask for shared memory size from user                                          // initilalize semaphore
     shmid = shmget(key, SIZE * sizeof(int), IPC_CREAT | 0666); // Create shared memory space
     int *array = (int *)shmat(shmid, 0, 0);                    // Map memory space to array
     for (int pos = 0; pos < SIZE; pos++)                       // Initialize empty memory space with -1
@@ -46,8 +52,10 @@ int main()
     shmsize = shmget(keySize, sizeof(int), IPC_CREAT | 0666); // Create shared memory space by size
     mapSize = (int *)shmat(shmsize, 0, 0);                    // Map shared memory space to array
     mapSize[0] = SIZE;
+	printf("Memory of %d created.\n\n", SIZE);
 
     // END OF INIT FUNCTION
 
     return 0;
 }
+
