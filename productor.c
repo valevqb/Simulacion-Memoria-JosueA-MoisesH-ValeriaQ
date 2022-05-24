@@ -15,12 +15,10 @@ key_t keySize = 987;
 key_t keyStruct = 1122233;
 key_t keyStructSize = 44332211;
 
-sem_t mutex;
-sem_t espia;
+sem_t mutex; //semaphore of memory functions
+sem_t espia; //semaphore of espia program functions
 
 int counterGlobal = 0; // Counter for PID of processes, would be managed by process structure
-// int sizeProcessPage;           // This would be generated randomly by the init function
-// int sizeProcessSeg;
 int SIZE; // Size of shared memory, given by user input in init function
 int *array;
 struct Queue *cola;
@@ -58,9 +56,9 @@ struct Queue
 	int size;
 };
 
+//Creates spia program array
 void createArray()
 {
-
 	while (1)
 	{
 		if (tamanio == cola->size)
@@ -78,6 +76,7 @@ void createArray()
 	}
 }
 
+//Creates espia shared memory
 void createSharedMemoryEspia()
 {
 	int shmstructsize;
@@ -125,6 +124,7 @@ int insertProcess(struct Queue *q, struct PCB pcb)
 	return 0;
 }
 
+//Search process by Id
 struct Node *searchProcessById(struct Queue *q, int pId)
 {
 	struct Node *node = q->first;
@@ -158,50 +158,55 @@ void printQueue(struct Queue *q)
 	return;
 }
 
-void memory(){
-}
-
-void writeBit(int pId, int state, int *array, FILE *openFile, int spaces[], int sizes)
+//Write bitacora file
+void writeBit(int pId, int state, int *array, int spaces[], int sizes)
 {
+	FILE *file = fopen("bitacora.txt", "a"); // Open file
+	
+	//Gets time
 	time_t t = time(NULL);
 	struct tm tm = *localtime(&t);
-	fprintf(openFile,
+	fprintf(file,
 			"Actual Time: %d-%02d-%02d %02d:%02d:%02d\n",
 			tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
+	
 	if (state == 1)
 	{
-		printf("Process %d is searching for memory space.\n", pId);		  // PRINT FOR TESTING PURPOSES
-		fprintf(openFile, "Process %d is searching for memory space.\n", pId); // Write in file
+		printf("Process %d with size %d is searching for memory space.\n", pId, sizes);		 
+		fprintf(file, "Process %d with size %d is searching for memory space.\n", pId, sizes); // Write in file
 	}
 	else if (state == 2)
 	{
 		printf("Process %d found space in memory.\n", pId);	// PRINT FOR TESTING PURPOSES
-		fprintf(openFile, "Process %d was inserted into the next memory location(s):\n"); // Write in file
+		fprintf(file, "Process %d was inserted into the next memory location(s):\n", pId); // Write in file
 		for (int i = 0; i < sizes; i++){
-			fprintf(openFile, "%d, ", spaces[i]);
+			fprintf(file, "%d, ", spaces[i]);
 		}
-		fprintf(openFile, "\n", pId); // Write in file
+		fprintf(file, "\n", pId); // Write in file
 	}
 	else if (state == 3)
 	{
-		printf("Process %d died.\n", pId); // PRINT FOR TESTING PURPOSES
-		fprintf(openFile, "Process %d died.\n", pId);			   // Write in file
+		printf("Process %d died, it did not found memory space.\n", pId);
+		fprintf(file, "Process %d died, it did not found memory space.\n", pId);			   // Write in file
 	}
 	else if (state == 4)
 	{
-		printf("Process %d finished\n", pId);		// PRINT FOR TESTING PURPOSES
-		fprintf(openFile, "Process %d finished\n", pId); // Write in file
+		printf("Process %d finished, its space is free.\n", pId);
+		fprintf(file, "Process %d finished, its space  is free.\n", pId); // Write in file
 	}
 
-	fprintf(openFile, "Actual array (-1 means free space): \n"); // PRINT FOR TESTING PURPOSES
+	fprintf(file, "Actual array (-1 means free space): \n");
 
-	for (int pos = 0; pos < SIZE; pos++) // Print memory space status, FOR TESTING PURPOSES
+	for (int pos = 0; pos < SIZE; pos++) // Write in file
 	{
-		fprintf(openFile, "%d ", array[pos]);
+		fprintf(file, "%d ", array[pos]);
 	}
-	fprintf(openFile, "\n\n"); // PRINT FOR TESTING PURPOSES
+	fprintf(file, "\n\n");
+	
+	fclose(file);
 }
 
+//If paging was select use it
 void pageProcess(struct Node *arg)
 {
 	int idProcess = arg->process.pId; // Save current PID counter locally
@@ -214,13 +219,12 @@ void pageProcess(struct Node *arg)
 	 * Before waiting at the semaphore, each process would check if it's their turn
 	 */
 	sem_wait(&mutex);						 // Send wait signal to semaphore when ready
-	FILE *file = fopen("bitacora.txt", "a"); // Open file
 	arg->process.state = 1;					 // Search memory
 
 	shmid = shmget(key, SIZE * sizeof(int), IPC_CREAT | 0666); // Get shared memory
 	int *array = (int *)shmat(shmid, 0, 0);					   // Map memory to array
 
-	writeBit(idProcess, 1, array, file, NULL, 0);
+	writeBit(idProcess, 1, array, NULL, arg->process.spaces);
 	int location[arg->process.spaces];
 	int countSpace = 0;
 
@@ -244,7 +248,7 @@ void pageProcess(struct Node *arg)
 	if (full) // If there was memory available
 	{
 		arg->process.state = 2; // Process in memory
-		writeBit(idProcess, 2, array, file, location, countSpace);
+		writeBit(idProcess, 2, array, location, countSpace);
 	}
 	else // If there was no memory available
 	{
@@ -256,15 +260,13 @@ void pageProcess(struct Node *arg)
 			}
 		}
 		arg->process.state = 3; // Process dies
-		writeBit(idProcess, 3, array, file, NULL, 0);
+		writeBit(idProcess, 3, array, NULL, arg->process.spaces);
 		shmdt((void *)array); // Detach memory segment
 		sem_post(&mutex);	  // Set semaphore to ready state
-		fclose(file);
 		return; // Process dies
 	}
 
 	shmdt((void *)array); // Detach memory segment
-	fclose(file);
 	sem_post(&mutex); // Set semaphore to ready state
 
 	srand(time(NULL));
@@ -282,14 +284,13 @@ void pageProcess(struct Node *arg)
 			array[pos] = -1;
 		}
 	}
-	file = fopen("bitacora.txt", "a");
+	
 	arg->process.state = 4; // Process finish
-	writeBit(idProcess, 4, array, file, NULL, 0);
-	//shmdt((void *)array); // Detach memory segment
-	fclose(file);
+	writeBit(idProcess, 4, array, NULL, arg->process.spaces);
 	sem_post(&mutex); // Set semaphore to ready state
 }
 
+//If segment was selected use it
 void segmentProcess(struct Node *arg)
 {
 	int idProcess = arg->process.pId; // Save current PID counter locally
@@ -302,18 +303,17 @@ void segmentProcess(struct Node *arg)
 	 */
 
 	sem_wait(&mutex);						 // Send wait signal to semaphore when ready
-	FILE *file = fopen("bitacora.txt", "a"); // Open file
 	arg->process.state = 1;					 // Search memory
 
 	shmid = shmget(key, SIZE * sizeof(int), IPC_CREAT | 0666); // Get memory space
 	int *array = (int *)shmat(shmid, 0, 0);					   // Map shared memory space to array
-	writeBit(idProcess, 1, array, file, NULL, 0);
 	int totalSp = 0;
 	for (int i = 0; arg->process.spaces > i; i++){
 		totalSp = totalSp + arg->process.sizeP[i];
 	}
 	int location[totalSp];
 	int countSpace = 0;
+	writeBit(idProcess, 1, array, NULL, totalSp);
 
 	// Loop to check for available memory
 	for (int pos = 0; pos < arg->process.spaces; pos++) // Here, SIZE would be replaced by the amount of pages
@@ -354,7 +354,7 @@ void segmentProcess(struct Node *arg)
 	if (full) // If space was found in memory
 	{
 		arg->process.state = 2; // Process in memory
-		writeBit(idProcess, 2, array, file, location, countSpace);
+		writeBit(idProcess, 2, array, location, countSpace);
 	}
 	else // If space was not found in memory
 	{
@@ -366,16 +366,11 @@ void segmentProcess(struct Node *arg)
 			}
 		}
 		arg->process.state = 3; // Process dies
-		writeBit(idProcess, 3, array, file, NULL, 0);
-		fclose(file);
-		//shmdt((void *)array); // Detach memory space
+		writeBit(idProcess, 3, array, NULL, totalSp);
 		sem_post(&mutex);	  // Set semaphore to ready state
 		return;				  // Process dies
 	}
 
-	fclose(file);
-
-	//shmdt((void *)array); // Detach memory space
 	sem_post(&mutex);	  // Set semaphore to ready state
 
 	srand(time(NULL));
@@ -392,18 +387,17 @@ void segmentProcess(struct Node *arg)
 			array[pos] = -1;
 		}
 	}
-	file = fopen("bitacora.txt", "a");
+	
 	arg->process.state = 4; // Process finish
-	writeBit(idProcess, 4, array, file, NULL, 0);
-	fclose(file);
-	//shmdt((void *)array); // Detach memory space
+	writeBit(idProcess, 4, array, NULL, totalSp);
 	sem_post(&mutex);	  // Set semaphore to ready state
 }
 
+//main menu
 int menu(){
 	int type;
 	
-	printf("\nSelect type of memory process\n");
+	printf("\nSelect a memory management scheme\n");
 	printf("1. Paging\n");
 	printf("2. Segmentation\n");
 	scanf("%d", &type); // Ask for shared memory size from user
@@ -424,7 +418,6 @@ int menu(){
 
 int main()
 {
-
 	// INIT FUNCTION
 	int shmid;
 	int shmsize;
@@ -443,8 +436,7 @@ int main()
 		return 0;
 	}
 
-	//shmdt((void *)mapSize); // Detach memory space
-
+	//for saving data
 	cola = (struct Queue *)malloc(sizeof(struct Queue));
 	cola->size = 0;
 
@@ -454,14 +446,12 @@ int main()
 	sem_init(&mutex, 0, 1); // initilalize semaphore
 	sem_init(&espia, 0, 1); // initilalize semaphore
 
-	// TESTING AREA
 	// This part would be done by the process creator
 	// segmentProcess or pageProcess would depend on user input
 	// validate the program still runing
 	pthread_t t1;
 	pthread_t t3;
 	pthread_t t4;
-	pthread_t t5;
 
 	pthread_create(&t4, NULL, createSharedMemoryEspia, NULL);
 	pthread_create(&t3, NULL, createArray, NULL);
@@ -472,13 +462,20 @@ int main()
 	
 	while (SIZE > 0)
 	{
+		shmsize = shmget(keySize, sizeof(int), IPC_CREAT | 0666); // Get shared memory size
+		mapSize = (int *)shmat(shmsize, 0, 0);
+		if(mapSize[0] == NULL){
+			printf("\nMemory space was ended.\n\n");
+			exit(0);
+			return 0;
+		}
+		
 		struct PCB process;
-		pthreadTime = rand() % (60 - 30 + 1) + 30;
 		process.pId = counterGlobal;
 		process.state = 0;
 		insertProcess(cola, process);
 
-		if (type == 2)
+		if (type == 2) //If segmentation was selected
 		{
 			pthread_t t2;
 
@@ -489,32 +486,21 @@ int main()
 			}
 			cola->last->process.spaces = segments;
 			pthread_create(&t2, NULL, segmentProcess, cola->last);
-		}
-		else
+		} 
+		else //If paging was selected
 		{
 			cola->last->process.spaces = rand() % (10 - 1 + 1) + 1;
 			pthread_t t2;
 			pthread_create(&t2, NULL, pageProcess, cola->last);
 		}
+		pthreadTime = rand() % (60 - 30 + 1) + 30;
 		sleep(pthreadTime); // Fixed sleep amount, defined by random in process creator
 		counterGlobal++;
-		
-		shmsize = shmget(keySize, sizeof(int), IPC_CREAT | 0666); // Get shared memory size
-		mapSize = (int *)shmat(shmsize, 0, 0);
-		if(mapSize[0] == NULL){
-			printf("\nMemory space was ended.\n\n");
-			return 0;
-		}
 	}
 
-	pthread_create(&t1, NULL, segmentProcess, NULL);
-	pthread_join(t1, NULL);
-	// END OF TESTING AREA
-
-	// Liberate semaphore memory, this would be done by the process finalizer
+	// Liberates semaphore memory, this would be done by the process finalizer
 	sem_destroy(&mutex);
 
 	return 0;
 }
-
 
