@@ -168,37 +168,32 @@ void writeBit(int pId, int state, int *array, FILE *openFile, int spaces[], int 
 	fprintf(openFile,
 			"Actual Time: %d-%02d-%02d %02d:%02d:%02d\n",
 			tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
-
-	if (state == 0){
-		fprintf(openFile, "Process %d has been created\n", pId);
-		printf("Process %d has been created\n", pId);
-	}
-	else if (state == 1)
+	if (state == 1)
 	{
-		printf("%d id is searching in memory\n", pId);		  // PRINT FOR TESTING PURPOSES
-		fprintf(openFile, "%d id is searching in memory\n", pId); // Write in file
+		printf("Process %d is searching for memory space.\n", pId);		  // PRINT FOR TESTING PURPOSES
+		fprintf(openFile, "Process %d is searching for memory space.\n", pId); // Write in file
 	}
 	else if (state == 2)
 	{
-		printf("Spaces found for id %d\n", pId);	// PRINT FOR TESTING PURPOSES
-		fprintf(openFile, "Spaces "); // Write in file
+		printf("Process %d found space in memory.\n", pId);	// PRINT FOR TESTING PURPOSES
+		fprintf(openFile, "Process %d was inserted into the next memory location(s):\n"); // Write in file
 		for (int i = 0; i < sizes; i++){
 			fprintf(openFile, "%d, ", spaces[i]);
 		}
-		fprintf(openFile, "found for id %d\n", pId); // Write in file
+		fprintf(openFile, "\n", pId); // Write in file
 	}
 	else if (state == 3)
 	{
-		printf("Process id %d dead\n", pId); // PRINT FOR TESTING PURPOSES
-		fprintf(openFile, "Process id %d dead\n", pId);			   // Write in file
+		printf("Process %d died.\n", pId); // PRINT FOR TESTING PURPOSES
+		fprintf(openFile, "Process %d died.\n", pId);			   // Write in file
 	}
 	else if (state == 4)
 	{
-		printf("Process with id %d finished\n", pId);		// PRINT FOR TESTING PURPOSES
-		fprintf(openFile, "Process with id %d finished\n", pId); // Write in file
+		printf("Process %d finished\n", pId);		// PRINT FOR TESTING PURPOSES
+		fprintf(openFile, "Process %d finished\n", pId); // Write in file
 	}
 
-	fprintf(openFile, "Actual array: \n"); // PRINT FOR TESTING PURPOSES
+	fprintf(openFile, "Actual array (-1 means free space): \n"); // PRINT FOR TESTING PURPOSES
 
 	for (int pos = 0; pos < SIZE; pos++) // Print memory space status, FOR TESTING PURPOSES
 	{
@@ -409,11 +404,11 @@ int menu(){
 	int type;
 	
 	printf("\nSelect type of memory process\n");
-	printf("1. Pagination\n");
+	printf("1. Paging\n");
 	printf("2. Segmentation\n");
 	scanf("%d", &type); // Ask for shared memory size from user
 	if(type == 1){
-		printf("\nYou have selected pagination.\n");
+		printf("\nYou have selected paging.\n");
 		printf("-------------------------------\n\n");
 		return 1;
 	}
@@ -507,7 +502,7 @@ int main()
 		shmsize = shmget(keySize, sizeof(int), IPC_CREAT | 0666); // Get shared memory size
 		mapSize = (int *)shmat(shmsize, 0, 0);
 		if(mapSize[0] == NULL){
-			printf("Memory has been done.\n\n");
+			printf("\nMemory space was ended.\n\n");
 			return 0;
 		}
 	}
@@ -521,4 +516,5 @@ int main()
 
 	return 0;
 }
+
 
