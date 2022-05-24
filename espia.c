@@ -38,6 +38,7 @@ struct Node
     struct PCB process;
 };
 
+//Main function
 int main()
 {
     // For memory
@@ -50,6 +51,15 @@ int main()
     int *array;
     int type;
 	
+	shmarraysize = shmget(keyStructSize, sizeof(int), IPC_CREAT | 0666); // Get shared memory size
+    sizeArray = (int *)shmat(shmarraysize, 0, 0);
+    SIZE = sizeArray[0];
+			
+	if(SIZE == 0){
+		printf("\nPlease create a shared memory with a size greater than 0.\n\n");
+		return 0;
+	}
+	
     while (1)
     {
         printf("\nSelect type of consultation\n");
@@ -59,41 +69,34 @@ int main()
         scanf("%d", &type); // Ask for shared memory size from user
         printf("\n");
 
-        if (type == 2)
+        if (type == 2) //view states
         {
-            shmarraysize = shmget(keyStructSize, sizeof(int), IPC_CREAT | 0666); // Get shared memory size
-            sizeArray = (int *)shmat(shmarraysize, 0, 0);
-            SIZE = sizeArray[0];
-			
-			if(SIZE == 0){
-				printf("Please create a shared memory with a size greater than 0.\n\n");
-				return 0;
-			}
-
+			shmarraysize = shmget(keyStructSize, sizeof(int), IPC_CREAT | 0666); // Get shared memory size
+			sizeArray = (int *)shmat(shmarraysize, 0, 0);
+			SIZE = sizeArray[0];
             shmarray = shmget(keyStruct, SIZE * sizeof(int), IPC_CREAT | 0666); // Get shared memory size
             array = (int *)shmat(shmarray, 0, 0);
 
-            for (int i = 0; i < SIZE+1; i++)
+            for (int i = 0; i < SIZE; i++)
             {
 				printf("Id: %d, ", i);
-				if(array[i] == 0) printf("State: blocked\n");
-				else if(array[i] == 1) printf("State: searching in memory\n");
-                else if(array[i] == 2) printf("State: in memory\n");
-				else if(array[i] == 3) printf("State: death\n");
-				else if(array[i] == 4) printf("State: already done\n");
-				//printf("State: %d, Id: %d\n", array[i], i);
+				if(array[i] == 0) printf("State: blocked.\n");
+				else if(array[i] == 1) printf("State: searching in memory.\n");
+                else if(array[i] == 2) printf("State: in memory.\n");
+				else if(array[i] == 3) printf("State: death.\n");
+				else if(array[i] == 4) printf("State: already done.\n");
             }
             shmdt((void *)sizeArray); // Detach memory space
             shmdt((void *)array);     // Detach memory space
 			printf("\n");
         }
-        else if (type == 1)
+        else if (type == 1) //view memory
         {
             shmsize = shmget(keySize, sizeof(int), IPC_CREAT | 0666); // Get shared memory size
 
             mapSize = (int *)shmat(shmsize, 0, 0);
 
-            printf("Memory size: %d \n\n", mapSize[0]);
+            printf("Memory size: %d\n", mapSize[0]);
 
             shmid = shmget(key, mapSize[0] * sizeof(int), IPC_CREAT | 0666); // Get shared memory
             int *array = (int *)shmat(shmid, 0, 0);                          // Map memory to arr
@@ -105,11 +108,10 @@ int main()
             }
             printf("\n\n");
 
-            //shmdt((void *)mapSize); // Detach memory space
-            //shmdt((void *)array);   // Detach memory space
         }
-        else if (type == 3)
+        else if (type == 3) //exit
         {
+			printf("Bye!\n\n");
 			exit(0);
             return 0;
         }
