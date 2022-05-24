@@ -65,7 +65,7 @@ void saveFile(){
 	//Close files
     printf("\n%s is saved.\n\n",target_file);
     fclose(source);
-	remove(source_file);
+    //remove(source_file);
     fclose(target);
 }
 
