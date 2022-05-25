@@ -483,6 +483,7 @@ int main()
 			for (int i = 0; segments > i; i++)
 			{
 				cola->last->process.sizeP[i] = rand() % (3 - 1 + 1) + 1;
+				printf("Segment #%d, with size of %d memory line(s)\n", i, cola->last->process.sizeP[i]);
 			}
 			cola->last->process.spaces = segments;
 			pthread_create(&t2, NULL, segmentProcess, cola->last);

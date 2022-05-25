@@ -52,7 +52,7 @@ int main()
     shmsize = shmget(keySize, sizeof(int), IPC_CREAT | 0666); // Create shared memory space by size
     mapSize = (int *)shmat(shmsize, 0, 0);                    // Map shared memory space to array
     mapSize[0] = SIZE;
-	printf("Shared memory was created.\n\n", SIZE);
+	printf("Shared memory was created.\n\n");
 
     return 0;
 }
