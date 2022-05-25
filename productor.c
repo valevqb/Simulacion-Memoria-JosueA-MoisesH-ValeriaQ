@@ -105,6 +105,7 @@ void createSharedMemoryEspia()
 // Inserts process into the queue
 int insertProcess(struct Queue *q, struct PCB pcb)
 {
+	sem_wait(&espia);
 	if (q->first == NULL)
 	{
 		q->first = (struct Node *)malloc(sizeof(struct Node));
@@ -121,6 +122,7 @@ int insertProcess(struct Queue *q, struct PCB pcb)
 		q->last = tmp;
 	}
 	q->size += 1;
+	sem_wait(&espia);
 	return 0;
 }
 
@@ -466,8 +468,7 @@ int main()
 		mapSize = (int *)shmat(shmsize, 0, 0);
 		if(mapSize[0] == NULL){
 			printf("\nMemory space was ended.\n\n");
-			exit(0);
-			return 0;
+			break;
 		}
 		
 		struct PCB process;
@@ -501,6 +502,7 @@ int main()
 
 	// Liberates semaphore memory, this would be done by the process finalizer
 	sem_destroy(&mutex);
+	sem_destroy(&espia);
 
 	return 0;
 }
