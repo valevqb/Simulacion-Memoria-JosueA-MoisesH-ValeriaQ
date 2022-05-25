@@ -122,7 +122,7 @@ int insertProcess(struct Queue *q, struct PCB pcb)
 		q->last = tmp;
 	}
 	q->size += 1;
-	sem_wait(&espia);
+	sem_post(&espia);
 	return 0;
 }
 
